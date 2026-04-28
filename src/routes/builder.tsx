@@ -1,31 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Download, Printer } from "lucide-react";
+import { Download, FileImage, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
+import { exportPDF, exportPNG } from "@/lib/export";
 
 export const Route = createFileRoute("/builder")({
   head: () => ({
     meta: [
       { title: "Builder — InvoiceCraft" },
-      { name: "description", content: "Craft a beautiful invoice with live preview, multi-currency, and one-click export." },
+      { name: "description", content: "Craft a beautiful invoice with live preview, themes, bilingual KH/EN, and one-click PDF/PNG export." },
     ],
   }),
   component: Builder,
 });
 
-const STORAGE_KEY = "invoicecraft:data";
+const STORAGE_KEY = "invoicecraft:data:v2";
 
 function Builder() {
   const [data, setData] = useState<InvoiceData>(defaultInvoice);
+  const [exporting, setExporting] = useState<null | "png" | "pdf">(null);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setData(JSON.parse(saved));
+      if (saved) setData({ ...defaultInvoice(), ...JSON.parse(saved) });
     } catch {}
   }, []);
 
@@ -35,47 +44,67 @@ function Builder() {
     } catch {}
   }, [data]);
 
+  const handleExport = async (kind: "png" | "pdf") => {
+    const el = document.getElementById("invoice-preview");
+    if (!el) return;
+    setExporting(kind);
+    try {
+      if (kind === "png") {
+        await exportPNG(el, data.invoiceNumber, data.clientName);
+        toast.success("PNG downloaded");
+      } else {
+        await exportPDF(el, data.invoiceNumber, data.clientName, data.paperSize);
+        toast.success("PDF downloaded");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Export failed");
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      <div className="container mx-auto max-w-[1400px] px-4 py-8 md:px-6">
+      <div className="container mx-auto max-w-[1500px] px-4 py-8 md:px-6">
         {/* Toolbar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight">Invoice Builder</h1>
-            <p className="text-sm text-muted-foreground">Live preview updates as you type. Auto-saved locally.</p>
+            <p className="text-sm text-muted-foreground">Live preview · Auto-saved · Bilingual KH/EN</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer className="mr-2 h-4 w-4" /> Print
-            </Button>
-            <Button className="bg-gradient-primary shadow-glow hover:opacity-90" onClick={() => window.print()}>
-              <Download className="mr-2 h-4 w-4" /> Export PDF
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-gradient-primary shadow-glow hover:opacity-90" disabled={!!exporting}>
+                  {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => handleExport("png")} className="cursor-pointer">
+                  <FileImage className="mr-2 h-4 w-4" /> Download as PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("pdf")} className="cursor-pointer">
+                  <FileText className="mr-2 h-4 w-4" /> Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
         {/* Split */}
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
           <div className="no-print">
             <InvoiceForm data={data} onChange={setData} />
           </div>
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <div id="print-area">
-              <InvoicePreview data={data} />
-            </div>
+            <InvoicePreview data={data} />
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media print {
-          .no-print, header { display: none !important; }
-          body { background: white !important; }
-          #print-area { box-shadow: none !important; }
-        }
-      `}</style>
     </div>
   );
 }
