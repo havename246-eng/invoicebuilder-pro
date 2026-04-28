@@ -1,121 +1,268 @@
-import { calcTotals, formatMoney, type InvoiceData } from "@/lib/invoice";
+import {
+  calcTotals,
+  formatMoney,
+  paperPxWidth,
+  STATUS_STYLES,
+  t,
+  THEMES,
+  type InvoiceData,
+} from "@/lib/invoice";
 
 export function InvoicePreview({ data }: { data: InvoiceData }) {
   const { subtotal, tax, total } = calcTotals(data.items, data.taxRate);
+  const theme = THEMES[data.theme];
+  const lang = data.language;
+  const status = STATUS_STYLES[data.status];
+  const widthPx = paperPxWidth(data.paperSize);
 
   return (
-    <div className="rounded-2xl bg-white p-8 text-slate-900 shadow-elegant md:p-10" id="invoice-preview">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-6 border-b border-slate-200 pb-6">
-        <div className="flex items-center gap-4">
-          {data.logo ? (
-            <img src={data.logo} alt="Logo" className="h-14 w-14 rounded-lg object-cover" />
-          ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-900 text-lg font-bold text-white">
-              {data.senderName.charAt(0)}
+    <div className="flex justify-center">
+      <div
+        id="invoice-preview"
+        className="font-invoice shadow-elegant"
+        style={{
+          width: `${widthPx}px`,
+          maxWidth: "100%",
+          minHeight: "400px",
+          background: theme.bg,
+          color: theme.text,
+          padding: "40px",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Custom header banner */}
+        {data.customHeader && (
+          <img
+            src={data.customHeader}
+            alt=""
+            style={{ width: "100%", maxHeight: "120px", objectFit: "cover", marginBottom: "24px", borderRadius: "8px" }}
+          />
+        )}
+
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: "24px",
+            paddingBottom: "20px",
+            borderBottom: `1px solid ${theme.border}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            {data.logo ? (
+              <img src={data.logo} alt="Logo" style={{ height: "56px", width: "56px", borderRadius: "10px", objectFit: "cover" }} />
+            ) : (
+              <div
+                style={{
+                  height: "56px",
+                  width: "56px",
+                  borderRadius: "10px",
+                  background: theme.accent,
+                  color: theme.bg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: "20px",
+                }}
+              >
+                {(data.senderName || "·").charAt(0)}
+              </div>
+            )}
+            <div>
+              <p style={{ fontWeight: 700, fontSize: "16px", margin: 0 }}>{data.senderName || "Your Company"}</p>
+              {data.senderEmail && <p style={{ fontSize: "12px", color: theme.muted, margin: "2px 0 0" }}>{data.senderEmail}</p>}
+              {data.senderAddress && <p style={{ fontSize: "12px", color: theme.muted, margin: "2px 0 0" }}>{data.senderAddress}</p>}
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", color: theme.accent, margin: 0 }}>
+              {t(lang, "invoice")}
+            </p>
+            <p style={{ fontSize: "12px", color: theme.muted, margin: "4px 0 0", fontFamily: "'JetBrains Mono', monospace" }}>
+              {data.invoiceNumber}
+            </p>
+            <span
+              style={{
+                display: "inline-block",
+                marginTop: "8px",
+                padding: "4px 10px",
+                borderRadius: "999px",
+                background: status.bg,
+                color: status.text,
+                border: `1px solid ${status.ring}`,
+                fontSize: "11px",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {t(lang, data.status)}
+            </span>
+          </div>
+        </div>
+
+        {/* Bill to */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", padding: "24px 0" }}>
+          <div>
+            <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
+              {t(lang, "billTo")}
+            </p>
+            <p style={{ marginTop: "8px", fontWeight: 600, fontSize: "14px" }}>{data.clientName || "—"}</p>
+            {data.clientEmail && <p style={{ fontSize: "12px", color: theme.muted, margin: "2px 0 0" }}>{data.clientEmail}</p>}
+            {data.clientAddress && <p style={{ fontSize: "12px", color: theme.muted, margin: "2px 0 0" }}>{data.clientAddress}</p>}
+          </div>
+          {data.issueDate && (
+            <div>
+              <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
+                {t(lang, "issued")}
+              </p>
+              <p style={{ marginTop: "8px", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace" }}>{data.issueDate}</p>
             </div>
           )}
-          <div>
-            <p className="font-display text-lg font-bold">{data.senderName || "Your Company"}</p>
-            {data.senderEmail && <p className="text-sm text-slate-500">{data.senderEmail}</p>}
-            {data.senderAddress && <p className="text-sm text-slate-500">{data.senderAddress}</p>}
-          </div>
+          {data.dueDate && (
+            <div>
+              <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
+                {t(lang, "due")}
+              </p>
+              <p style={{ marginTop: "8px", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace" }}>{data.dueDate}</p>
+            </div>
+          )}
         </div>
-        <div className="text-right">
-          <p className="font-display text-3xl font-bold tracking-tight">INVOICE</p>
-          <p className="mt-1 font-mono text-sm text-slate-500">{data.invoiceNumber}</p>
-        </div>
-      </div>
 
-      {/* Bill to */}
-      <div className="grid grid-cols-2 gap-6 py-6 md:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Bill to</p>
-          <p className="mt-2 font-semibold">{data.clientName || "Client"}</p>
-          {data.clientEmail && <p className="text-sm text-slate-500">{data.clientEmail}</p>}
-          {data.clientAddress && <p className="text-sm text-slate-500">{data.clientAddress}</p>}
-        </div>
-        {data.issueDate && (
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Issued</p>
-            <p className="mt-2 font-mono text-sm">{data.issueDate}</p>
-          </div>
-        )}
-        {data.dueDate && (
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Due</p>
-            <p className="mt-2 font-mono text-sm">{data.dueDate}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Items */}
-      <div className="overflow-hidden rounded-xl border border-slate-200">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="px-4 py-3 text-left">Description</th>
-              <th className="px-4 py-3 text-right">Qty</th>
-              <th className="px-4 py-3 text-right">Price</th>
-              <th className="px-4 py-3 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.map((item) => (
-              <tr key={item.id} className="border-t border-slate-100">
-                <td className="px-4 py-3">{item.description || "—"}</td>
-                <td className="px-4 py-3 text-right font-mono">{item.quantity}</td>
-                <td className="px-4 py-3 text-right font-mono">{formatMoney(item.price, data.currency)}</td>
-                <td className="px-4 py-3 text-right font-mono font-semibold">{formatMoney(item.quantity * item.price, data.currency)}</td>
+        {/* Items */}
+        <div style={{ borderRadius: "10px", overflow: "hidden", border: `1px solid ${theme.border}` }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+            <thead>
+              <tr style={{ background: theme.tableHead, color: theme.muted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <th style={{ padding: "10px 14px", textAlign: "left" }}>{t(lang, "description")}</th>
+                <th style={{ padding: "10px 14px", textAlign: "right" }}>{t(lang, "qty")}</th>
+                <th style={{ padding: "10px 14px", textAlign: "right" }}>{t(lang, "price")}</th>
+                <th style={{ padding: "10px 14px", textAlign: "right" }}>{t(lang, "total")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Totals */}
-      <div className="mt-6 flex justify-end">
-        <div className="w-full max-w-xs space-y-2 text-sm">
-          <div className="flex justify-between text-slate-500">
-            <span>Subtotal</span>
-            <span className="font-mono">{formatMoney(subtotal, data.currency)}</span>
-          </div>
-          <div className="flex justify-between text-slate-500">
-            <span>Tax ({data.taxRate}%)</span>
-            <span className="font-mono">{formatMoney(tax, data.currency)}</span>
-          </div>
-          <div className="mt-3 flex justify-between border-t border-slate-200 pt-3">
-            <span className="font-display text-lg font-bold">Total</span>
-            <span className="font-mono text-lg font-bold">{formatMoney(total, data.currency)}</span>
-          </div>
+            </thead>
+            <tbody>
+              {data.items.map((item) => (
+                <tr key={item.id} style={{ borderTop: `1px solid ${theme.border}` }}>
+                  <td style={{ padding: "12px 14px" }}>{item.description || "—"}</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{item.quantity}</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>
+                    {formatMoney(item.price, data.currency)}
+                  </td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                    {formatMoney(item.quantity * item.price, data.currency)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      {/* Footer */}
-      {(data.bankName || data.bankAccount || data.qrCode || data.notes) && (
-        <div className="mt-8 grid gap-6 border-t border-slate-200 pt-6 md:grid-cols-2">
+        {/* Totals */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginTop: "20px" }}>
           <div>
-            {(data.bankName || data.bankAccount) && (
-              <>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Payment</p>
-                {data.bankName && <p className="mt-2 text-sm font-semibold">{data.bankName}</p>}
-                {data.bankAccount && <p className="font-mono text-sm text-slate-500">{data.bankAccount}</p>}
-              </>
-            )}
-            {data.notes && (
-              <>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Notes</p>
-                <p className="mt-2 text-sm text-slate-600">{data.notes}</p>
-              </>
+            {data.freeDelivery && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "999px",
+                  background: theme.accent,
+                  color: theme.bg,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                }}
+              >
+                ✓ {t(lang, "freeDelivery")}
+              </span>
             )}
           </div>
-          {data.qrCode && (
-            <div className="flex justify-end">
-              <img src={data.qrCode} alt="Payment QR" className="h-32 w-32 rounded-lg border border-slate-200 object-cover" />
+          <div style={{ width: "260px", fontSize: "13px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", color: theme.muted, padding: "4px 0" }}>
+              <span>{t(lang, "subtotal")}</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{formatMoney(subtotal, data.currency)}</span>
             </div>
-          )}
+            <div style={{ display: "flex", justifyContent: "space-between", color: theme.muted, padding: "4px 0" }}>
+              <span>{t(lang, "tax")} ({data.taxRate}%)</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{formatMoney(tax, data.currency)}</span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                borderTop: `1px solid ${theme.border}`,
+                paddingTop: "10px",
+                marginTop: "8px",
+                fontSize: "16px",
+                fontWeight: 700,
+              }}
+            >
+              <span>{t(lang, "total")}</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{formatMoney(total, data.currency)}</span>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Payment + notes */}
+        {(data.bankName || data.bankAccount || data.qrCode || data.notes) && (
+          <div
+            style={{
+              marginTop: "28px",
+              paddingTop: "20px",
+              borderTop: `1px solid ${theme.border}`,
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: "24px",
+            }}
+          >
+            <div>
+              {(data.bankName || data.bankAccount) && (
+                <>
+                  <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
+                    {t(lang, "payment")}
+                  </p>
+                  {data.bankName && <p style={{ marginTop: "6px", fontSize: "13px", fontWeight: 600 }}>{data.bankName}</p>}
+                  {data.bankAccount && (
+                    <p style={{ fontSize: "12px", color: theme.muted, fontFamily: "'JetBrains Mono', monospace", margin: "2px 0 0" }}>
+                      {data.bankAccount}
+                    </p>
+                  )}
+                </>
+              )}
+              {data.notes && (
+                <>
+                  <p style={{ marginTop: "16px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted }}>
+                    {t(lang, "notes")}
+                  </p>
+                  <p style={{ marginTop: "6px", fontSize: "12px", color: theme.muted }}>{data.notes}</p>
+                </>
+              )}
+            </div>
+            {data.qrCode && (
+              <div>
+                <img
+                  src={data.qrCode}
+                  alt="Payment QR"
+                  style={{ height: "110px", width: "110px", borderRadius: "8px", border: `1px solid ${theme.border}`, objectFit: "cover" }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Custom footer */}
+        {data.customFooter && (
+          <img
+            src={data.customFooter}
+            alt=""
+            style={{ width: "100%", maxHeight: "100px", objectFit: "cover", marginTop: "24px", borderRadius: "8px" }}
+          />
+        )}
+      </div>
     </div>
   );
 }
