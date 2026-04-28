@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import {
   calcTotals,
   formatMoney,
+  paperPxHeight,
   paperPxWidth,
   STATUS_STYLES,
   t,
@@ -14,20 +16,54 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
   const lang = data.language;
   const status = STATUS_STYLES[data.status];
   const widthPx = paperPxWidth(data.paperSize);
+  const minHeightPx = paperPxHeight(data.paperSize);
+
+  // Fit-to-container scaling so the true-size A4 page is readable on every screen.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const available = el.clientWidth;
+      const next = Math.min(1, available / widthPx);
+      setScale(next > 0 ? next : 1);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [widthPx]);
 
   return (
-    <div className="flex justify-center">
+    <div ref={wrapRef} className="w-full overflow-hidden">
       <div
-        id="invoice-preview"
-        className="font-invoice shadow-elegant"
         style={{
-          width: `${widthPx}px`,
-          maxWidth: "100%",
-          minHeight: "400px",
-          background: theme.bg,
-          color: theme.text,
-          padding: "40px",
-          boxSizing: "border-box",
+          width: `${widthPx * scale}px`,
+          height: `${minHeightPx * scale}px`,
+          marginInline: "auto",
+        }}
+      >
+        <div
+          id="invoice-preview"
+          className="font-invoice shadow-elegant"
+          style={{
+            width: `${widthPx}px`,
+            minHeight: `${minHeightPx}px`,
+            background: theme.bg,
+            color: theme.text,
+            padding: "48px",
+            boxSizing: "border-box",
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+
         }}
       >
         {/* Custom header banner */}
