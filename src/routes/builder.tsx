@@ -50,7 +50,7 @@ function Builder() {
     setExporting(kind);
     try {
       if (kind === "png") {
-        await exportPNG(el, data.invoiceNumber, data.clientName);
+        await exportPNG(el, data.invoiceNumber, data.clientName, data.paperSize);
         toast.success("PNG downloaded");
       } else {
         await exportPDF(el, data.invoiceNumber, data.clientName, data.paperSize);
