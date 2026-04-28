@@ -1,20 +1,22 @@
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { PAPER_DIMENSIONS, paperPxWidth, type PaperSize } from "./invoice";
 
 const safe = (s: string) =>
-  (s || "invoice").replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "invoice";
+  (s || "invoice")
+    .replace(/[^\w\-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "") || "invoice";
 
 /**
- * Render the invoice node off-screen at its true (unscaled) size with safe
- * colors, then snapshot via html2canvas. This avoids two common failure modes:
- *   1) modern OKLCH/oklab tokens inherited from the page that html2canvas can't parse
- *   2) CSS transform: scale() on the live preview distorting the capture box
+ * Render the invoice into a PNG data URL. We clone into an off-screen sandbox
+ * with a forced white background and no transforms so:
+ *  - inherited OKLCH/oklab tokens from the page don't break parsing
+ *  - the responsive scale() on the live preview doesn't distort the capture
  */
-const captureCanvas = async (sourceEl: HTMLElement, paperSize: PaperSize) => {
+async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promise<string> {
   const widthPx = paperPxWidth(paperSize);
 
-  // Off-screen sandbox
   const sandbox = document.createElement("div");
   sandbox.style.position = "fixed";
   sandbox.style.left = "-100000px";
@@ -24,8 +26,12 @@ const captureCanvas = async (sourceEl: HTMLElement, paperSize: PaperSize) => {
   sandbox.style.color = "#0f172a";
   sandbox.style.zIndex = "-1";
   sandbox.style.pointerEvents = "none";
+  // Override any inherited custom properties that use oklch()
+  sandbox.style.setProperty("--background", "#ffffff");
+  sandbox.style.setProperty("--foreground", "#0f172a");
+  sandbox.style.setProperty("--border", "#e2e8f0");
+  sandbox.style.setProperty("--color-border", "#e2e8f0");
 
-  // Deep clone the live preview, strip transforms / scaling
   const clone = sourceEl.cloneNode(true) as HTMLElement;
   clone.style.transform = "none";
   clone.style.width = `${widthPx}px`;
@@ -36,31 +42,37 @@ const captureCanvas = async (sourceEl: HTMLElement, paperSize: PaperSize) => {
   sandbox.appendChild(clone);
   document.body.appendChild(sandbox);
 
-  // Wait one frame so layout/fonts settle
+  // Wait for layout + fonts
   await new Promise((r) => requestAnimationFrame(() => r(null)));
-  if (document.fonts && document.fonts.ready) {
-    try {
-      await document.fonts.ready;
-    } catch {
-      /* ignore */
-    }
+  if (document.fonts?.ready) {
+    try { await document.fonts.ready; } catch { /* noop */ }
   }
 
   try {
-    const canvas = await html2canvas(clone, {
-      scale: 2,
+    const dataUrl = await toPng(clone, {
+      pixelRatio: 2,
       backgroundColor: "#ffffff",
-      useCORS: true,
-      logging: false,
-      windowWidth: widthPx,
+      cacheBust: true,
       width: widthPx,
       height: clone.scrollHeight,
+      style: { transform: "none", margin: "0" },
+      // Skip external stylesheet rules we can't read (CORS); inline styles still apply
+      skipFonts: false,
     });
-    return canvas;
+    return dataUrl;
   } finally {
-    document.body.removeChild(sandbox);
+    sandbox.remove();
   }
-};
+}
+
+function triggerDownload(href: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
 
 export async function exportPNG(
   el: HTMLElement,
@@ -68,13 +80,8 @@ export async function exportPNG(
   clientName: string,
   paperSize: PaperSize,
 ) {
-  const canvas = await captureCanvas(el, paperSize);
-  const link = document.createElement("a");
-  link.download = `${safe(invoiceNo)}_${safe(clientName)}.png`;
-  link.href = canvas.toDataURL("image/png");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const dataUrl = await renderDataUrl(el, paperSize);
+  triggerDownload(dataUrl, `${safe(invoiceNo)}_${safe(clientName)}.png`);
 }
 
 export async function exportPDF(
@@ -83,7 +90,7 @@ export async function exportPDF(
   clientName: string,
   paperSize: PaperSize,
 ) {
-  const canvas = await captureCanvas(el, paperSize);
+  const dataUrl = await renderDataUrl(el, paperSize);
   const { w, h } = PAPER_DIMENSIONS[paperSize];
 
   const pdf = new jsPDF({
@@ -95,12 +102,19 @@ export async function exportPDF(
         : (paperSize.toLowerCase() as "a4" | "a5"),
   });
 
+  // Load image to learn aspect ratio
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("Failed to load rendered image"));
+    i.src = dataUrl;
+  });
+
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  const imgRatio = canvas.height / canvas.width;
+  const imgRatio = img.height / img.width;
   const imgW = pageW;
   const imgH = imgW * imgRatio;
-  const dataUrl = canvas.toDataURL("image/png");
 
   if (imgH <= pageH) {
     pdf.addImage(dataUrl, "PNG", 0, 0, imgW, imgH);

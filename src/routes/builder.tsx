@@ -46,19 +46,27 @@ function Builder() {
 
   const handleExport = async (kind: "png" | "pdf") => {
     const el = document.getElementById("invoice-preview");
-    if (!el) return;
+    if (!el) {
+      toast.error("Preview not ready", { description: "Please wait a moment and try again." });
+      return;
+    }
     setExporting(kind);
+    const tId = toast.loading(kind === "png" ? "Generating PNG…" : "Generating PDF…");
     try {
       if (kind === "png") {
         await exportPNG(el, data.invoiceNumber, data.clientName, data.paperSize);
-        toast.success("PNG downloaded");
+        toast.success("PNG downloaded", { id: tId });
       } else {
         await exportPDF(el, data.invoiceNumber, data.clientName, data.paperSize);
-        toast.success("PDF downloaded");
+        toast.success("PDF downloaded", { id: tId });
       }
     } catch (e) {
-      console.error(e);
-      toast.error("Export failed");
+      console.error("[export]", e);
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      const hint = /image|cors|tainted/i.test(msg)
+        ? "An uploaded image may be blocking the export. Try re-uploading the logo or QR code."
+        : "Please try again. If it keeps failing, refresh the page.";
+      toast.error("Export failed", { id: tId, description: `${msg} — ${hint}` });
     } finally {
       setExporting(null);
     }
