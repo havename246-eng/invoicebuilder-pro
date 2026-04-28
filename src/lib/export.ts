@@ -48,6 +48,19 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promi
     try { await document.fonts.ready; } catch { /* noop */ }
   }
 
+  // Wait for every image inside the clone to decode (logo, header, footer, QR).
+  const imgs = Array.from(clone.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      });
+    }),
+  );
+
   try {
     const dataUrl = await toPng(clone, {
       pixelRatio: 2,
