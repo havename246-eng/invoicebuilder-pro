@@ -148,3 +148,12 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* Bilingual invoice typography — Noto Sans (Latin) + Noto Sans Khmer */
+.font-invoice {
+  font-family: 'Noto Sans', 'Noto Sans Khmer', system-ui, sans-serif;
+  font-feature-settings: "liga", "kern";
+}
+.font-khmer {
+  font-family: 'Noto Sans Khmer', 'Noto Sans', system-ui, sans-serif;
+}
