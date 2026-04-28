@@ -298,6 +298,7 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             style={{ width: "100%", maxHeight: "100px", objectFit: "cover", marginTop: "24px", borderRadius: "8px" }}
           />
         )}
+        </div>
       </div>
     </div>
   );
