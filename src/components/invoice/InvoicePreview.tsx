@@ -67,8 +67,9 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
         {data.customHeader && (
           <img
             src={data.customHeader}
-            alt=""
-            style={{ width: "100%", maxHeight: "120px", objectFit: "cover", marginBottom: "24px", borderRadius: "8px" }}
+            alt="Header"
+            crossOrigin="anonymous"
+            style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginBottom: "24px", borderRadius: "8px" }}
           />
         )}
 
@@ -291,8 +292,9 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
         {data.customFooter && (
           <img
             src={data.customFooter}
-            alt=""
-            style={{ width: "100%", maxHeight: "100px", objectFit: "cover", marginTop: "24px", borderRadius: "8px" }}
+            alt="Footer"
+            crossOrigin="anonymous"
+            style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginTop: "24px", borderRadius: "8px" }}
           />
         )}
         </div>
