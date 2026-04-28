@@ -63,9 +63,6 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             transformOrigin: "top left",
           }}
         >
-
-        }}
-      >
         {/* Custom header banner */}
         {data.customHeader && (
           <img
