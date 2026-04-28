@@ -48,16 +48,47 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promi
     try { await document.fonts.ready; } catch { /* noop */ }
   }
 
-  // Wait for every image inside the clone to decode (logo, header, footer, QR).
-  const imgs = Array.from(clone.querySelectorAll("img"));
+  // Pre-warm: load every image src via fresh Image() so the browser cache has them decoded
+  const sources = Array.from(sourceEl.querySelectorAll("img"))
+    .map((i) => i.getAttribute("src"))
+    .filter((s): s is string => !!s);
   await Promise.all(
-    imgs.map((img) => {
-      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-      return new Promise<void>((resolve) => {
-        const done = () => resolve();
-        img.addEventListener("load", done, { once: true });
-        img.addEventListener("error", done, { once: true });
-      });
+    sources.map(
+      (src) =>
+        new Promise<void>((resolve) => {
+          const i = new Image();
+          i.onload = () => resolve();
+          i.onerror = () => resolve();
+          i.src = src;
+        }),
+    ),
+  );
+
+  // Strip crossOrigin on cloned images (data URLs don't need CORS, and the
+  // attribute can cause silent re-fetch failures inside the cloned subtree).
+  const imgs = Array.from(clone.querySelectorAll("img"));
+  imgs.forEach((img) => {
+    img.removeAttribute("crossorigin");
+    (img as HTMLImageElement).crossOrigin = null as unknown as string;
+  });
+
+  // Wait for every image inside the clone to fully load and decode.
+  await Promise.all(
+    imgs.map(async (img) => {
+      try {
+        if (!(img.complete && img.naturalWidth > 0)) {
+          await new Promise<void>((resolve) => {
+            const done = () => resolve();
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          });
+        }
+        if (typeof img.decode === "function") {
+          await img.decode().catch(() => undefined);
+        }
+      } catch {
+        /* noop */
+      }
     }),
   );
 
