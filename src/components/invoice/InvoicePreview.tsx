@@ -68,7 +68,6 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
           <img
             src={data.customHeader}
             alt="Header"
-            crossOrigin="anonymous"
             style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginBottom: "24px", borderRadius: "8px" }}
           />
         )}
@@ -293,7 +292,6 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
           <img
             src={data.customFooter}
             alt="Footer"
-            crossOrigin="anonymous"
             style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginTop: "24px", borderRadius: "8px" }}
           />
         )}
