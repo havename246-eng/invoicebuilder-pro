@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap');
 
 @theme inline {
   --font-sans: 'DM Sans', system-ui, sans-serif;
@@ -147,4 +147,13 @@
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* Bilingual invoice typography — Noto Sans (Latin) + Noto Sans Khmer */
+.font-invoice {
+  font-family: 'Noto Sans', 'Noto Sans Khmer', system-ui, sans-serif;
+  font-feature-settings: "liga", "kern";
+}
+.font-khmer {
+  font-family: 'Noto Sans Khmer', 'Noto Sans', system-ui, sans-serif;
 }

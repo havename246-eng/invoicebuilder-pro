@@ -3,13 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { InvoiceData, LineItem, Currency } from "@/lib/invoice";
+import {
+  THEMES,
+  type Currency,
+  type InvoiceData,
+  type InvoiceLanguage,
+  type InvoiceStatus,
+  type InvoiceTheme,
+  type LineItem,
+  type PaperSize,
+} from "@/lib/invoice";
 
 interface Props {
   data: InvoiceData;
   onChange: (data: InvoiceData) => void;
 }
+
+type ImageKey = "logo" | "qrCode" | "customHeader" | "customFooter";
 
 export function InvoiceForm({ data, onChange }: Props) {
   const update = <K extends keyof InvoiceData>(key: K, value: InvoiceData[K]) =>
@@ -27,15 +39,70 @@ export function InvoiceForm({ data, onChange }: Props) {
   const removeItem = (id: string) =>
     onChange({ ...data, items: data.items.filter((i) => i.id !== id) });
 
-  const handleImage = (key: "logo" | "qrCode", file: File) => {
+  const handleImage = (key: ImageKey, file: File) => {
     const reader = new FileReader();
     reader.onload = () => update(key, reader.result as string);
     reader.readAsDataURL(file);
   };
 
   return (
-    <div className="space-y-8">
-      {/* Section: From */}
+    <div className="space-y-6">
+      {/* Customization */}
+      <Section title="Customize" subtitle="Theme, language & paper size">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Language">
+            <Select value={data.language} onValueChange={(v) => update("language", v as InvoiceLanguage)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="km">ខ្មែរ (Khmer)</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Paper size">
+            <Select value={data.paperSize} onValueChange={(v) => update("paperSize", v as PaperSize)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A4">A4 (210 × 297 mm)</SelectItem>
+                <SelectItem value="Letter">Letter (8.5 × 11 in)</SelectItem>
+                <SelectItem value="A5">A5 (148 × 210 mm)</SelectItem>
+                <SelectItem value="Legal">Legal (8.5 × 14 in)</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Theme" className="sm:col-span-2">
+            <div className="grid grid-cols-5 gap-2">
+              {(Object.keys(THEMES) as InvoiceTheme[]).map((key) => {
+                const th = THEMES[key];
+                const active = data.theme === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => update("theme", key)}
+                    className={`group rounded-lg border p-2 text-left transition-smooth ${
+                      active ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex h-12 items-center justify-center rounded-md" style={{ background: th.bg, border: `1px solid ${th.border}` }}>
+                      <div className="h-6 w-6 rounded" style={{ background: th.accent }} />
+                    </div>
+                    <p className="mt-1.5 truncate text-[10px] text-muted-foreground">{th.name}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+          <Field label="Custom header (optional)">
+            <ImageUpload value={data.customHeader} onClear={() => update("customHeader", null)} onUpload={(f) => handleImage("customHeader", f)} label="Upload header" />
+          </Field>
+          <Field label="Custom footer (optional)">
+            <ImageUpload value={data.customFooter} onClear={() => update("customFooter", null)} onUpload={(f) => handleImage("customFooter", f)} label="Upload footer" />
+          </Field>
+        </div>
+      </Section>
+
+      {/* From */}
       <Section title="From" subtitle="Your business details">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Company name">
@@ -53,7 +120,7 @@ export function InvoiceForm({ data, onChange }: Props) {
         </div>
       </Section>
 
-      {/* Section: Bill to */}
+      {/* Bill to */}
       <Section title="Bill to" subtitle="Client details">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Client name">
@@ -68,17 +135,23 @@ export function InvoiceForm({ data, onChange }: Props) {
         </div>
       </Section>
 
-      {/* Section: Details */}
+      {/* Details */}
       <Section title="Invoice details">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Invoice #">
             <Input value={data.invoiceNumber} onChange={(e) => update("invoiceNumber", e.target.value)} />
           </Field>
-          <Field label="Issue date">
-            <Input type="date" value={data.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
-          </Field>
-          <Field label="Due date (optional)">
-            <Input type="date" value={data.dueDate} onChange={(e) => update("dueDate", e.target.value)} />
+          <Field label="Status">
+            <Select value={data.status} onValueChange={(v) => update("status", v as InvoiceStatus)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="void">Void</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Currency">
             <Select value={data.currency} onValueChange={(v) => update("currency", v as Currency)}>
@@ -89,13 +162,27 @@ export function InvoiceForm({ data, onChange }: Props) {
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Issue date">
+            <Input type="date" value={data.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
+          </Field>
+          <Field label="Due date (optional)">
+            <Input type="date" value={data.dueDate} onChange={(e) => update("dueDate", e.target.value)} />
+          </Field>
           <Field label="Tax rate (%)">
             <Input type="number" min="0" value={data.taxRate} onChange={(e) => update("taxRate", Number(e.target.value))} />
           </Field>
         </div>
+
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3">
+          <div>
+            <p className="text-sm font-medium">Free Delivery tag</p>
+            <p className="text-xs text-muted-foreground">Show a "Free Delivery" badge on the invoice.</p>
+          </div>
+          <Switch checked={data.freeDelivery} onCheckedChange={(v) => update("freeDelivery", v)} />
+        </div>
       </Section>
 
-      {/* Section: Items */}
+      {/* Items */}
       <Section title="Line items" subtitle="What you're charging for">
         <div className="space-y-3">
           {data.items.map((item) => (
@@ -114,7 +201,7 @@ export function InvoiceForm({ data, onChange }: Props) {
         </div>
       </Section>
 
-      {/* Section: Payment */}
+      {/* Payment */}
       <Section title="Payment" subtitle="Bank info & QR code (optional)">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Bank name">
