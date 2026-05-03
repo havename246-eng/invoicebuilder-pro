@@ -80,13 +80,13 @@ function Builder() {
         {/* Toolbar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight">Invoice Builder</h1>
+            <h1 className="text-2xl">Invoice Builder</h1>
             <p className="text-sm text-muted-foreground">Live preview · Auto-saved · Bilingual KH/EN</p>
           </div>
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-gradient-primary shadow-glow hover:opacity-90" disabled={!!exporting}>
+                <Button className="rounded-[6px] bg-primary text-primary-foreground hover:opacity-90" disabled={!!exporting}>
                   {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Export
                 </Button>
@@ -105,7 +105,7 @@ function Builder() {
 
         {/* Split */}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-          <div className="no-print">
+          <div className="no-print rounded-lg bg-panel p-4">
             <InvoiceForm data={data} onChange={setData} />
           </div>
           <div className="lg:sticky lg:top-24 lg:self-start">
