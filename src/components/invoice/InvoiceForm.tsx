@@ -81,7 +81,7 @@ export function InvoiceForm({ data, onChange }: Props) {
                     type="button"
                     onClick={() => update("theme", key)}
                     className={`group rounded-lg border p-2 text-left transition-smooth ${
-                      active ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50"
+                      active ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/30"
                     }`}
                   >
                     <div className="flex h-12 items-center justify-center rounded-md" style={{ background: th.bg, border: `1px solid ${th.border}` }}>
@@ -173,7 +173,7 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
           <div>
             <p className="text-sm font-medium">Free Delivery tag</p>
             <p className="text-xs text-muted-foreground">Show a "Free Delivery" badge on the invoice.</p>
@@ -186,7 +186,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       <Section title="Line items" subtitle="What you're charging for">
         <div className="space-y-3">
           {data.items.map((item) => (
-            <div key={item.id} className="grid gap-2 rounded-xl border border-border bg-surface p-3 sm:grid-cols-[1fr_80px_120px_auto]">
+            <div key={item.id} className="grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-[1fr_80px_120px_auto]">
               <Input placeholder="Description" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} />
               <Input type="number" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })} />
               <Input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(item.id, { price: Number(e.target.value) })} />
@@ -224,9 +224,9 @@ export function InvoiceForm({ data, onChange }: Props) {
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border bg-gradient-card p-6 shadow-card">
+    <section className="rounded-lg border border-border bg-surface p-6">
       <div className="mb-5">
-        <h3 className="font-display text-base font-semibold">{title}</h3>
+        <h3 className="text-sm font-semibold">{title}</h3>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       {children}
@@ -237,7 +237,7 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="eyebrow">{label}</Label>
       {children}
     </div>
   );
@@ -252,7 +252,7 @@ function ImageUpload({ value, onUpload, onClear, label }: { value: string | null
           <Button variant="outline" size="sm" onClick={onClear}>Remove</Button>
         </div>
       ) : (
-        <label className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface text-sm text-muted-foreground transition-smooth hover:border-primary hover:text-foreground">
+        <label className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-dashed border-border bg-surface text-sm text-muted-foreground transition-smooth hover:border-foreground hover:text-foreground">
           <Upload className="h-4 w-4" />
           {label}
           <input
