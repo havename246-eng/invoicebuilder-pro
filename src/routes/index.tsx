@@ -35,34 +35,35 @@ function Landing() {
       {/* Hero */}
       <section className="bg-background">
         <div className="container mx-auto max-w-7xl px-6 py-20 md:py-28">
-          <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_1fr]">
-            <div>
-              <p className="eyebrow">Invoice tool for modern freelancers</p>
-              <h1 className="mt-5 text-[44px] leading-[1.1] md:text-[52px]">
-                Invoices that look <em>crafted</em>, not generated.
-              </h1>
-              <p className="mt-6 max-w-xl text-[15px] text-muted-foreground">
-                InvoiceCraft is the fastest way to send beautiful, branded e-invoices.
-                Multi-currency, multilingual, and ready for the modern web.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Button asChild size="lg" className="rounded-[6px] bg-primary text-primary-foreground hover:opacity-90">
-                  <Link to="/builder">Create your invoice</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="rounded-[6px] border-[#C8C4BE] text-foreground">
-                  <a href="#features">Explore features</a>
-                </Button>
-              </div>
-              <p className="mt-8 text-sm text-muted-foreground">
-                No sign-up · USD & ៛ Riel · PDF + PNG export
-              </p>
+          <div className="flex flex-col items-center text-center">
+            <p className="eyebrow">Invoice tool for modern freelancers</p>
+            <h1 className="mt-5 text-[44px] leading-[1.1] md:text-[56px] max-w-3xl font-bold">
+              Invoices that look <em>crafted</em>, not generated.
+            </h1>
+            <p className="mt-6 max-w-xl text-[15px] text-muted-foreground">
+              InvoiceCraft is the fastest way to send beautiful, branded e-invoices.
+              Multi-currency, multilingual, and ready for the modern web.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild size="lg" className="rounded-[6px] bg-primary text-primary-foreground hover:opacity-90">
+                <Link to="/builder">Create your invoice</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="rounded-[6px] border-[#C8C4BE] text-foreground">
+                <a href="#features">Explore features</a>
+              </Button>
             </div>
+            <p className="mt-8 text-sm text-muted-foreground">
+              No sign-up · USD & ៛ Riel · PDF + PNG export
+            </p>
+          </div>
+        </div>
+      </section>
 
-            <div className="relative">
-              <div className="relative scale-[0.85] origin-top">
-                <InvoicePreview data={sample} />
-              </div>
-            </div>
+      {/* Invoice Preview */}
+      <section className="bg-surface py-12 md:py-16">
+        <div className="container mx-auto max-w-4xl px-6">
+          <div className="mx-auto scale-[0.9] origin-top">
+            <InvoicePreview data={sample} />
           </div>
         </div>
       </section>
