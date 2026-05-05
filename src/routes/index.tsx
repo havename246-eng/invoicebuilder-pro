@@ -141,8 +141,9 @@ function Landing() {
           </Button>
         </div>
       </section>
+      </main>
 
-      <footer className="border-t border-border bg-background py-8">
+      <footer className="border-t border-border bg-background py-8" role="contentinfo">
         <div className="container mx-auto max-w-7xl px-6 text-center text-[13px] text-muted-foreground">
           © {new Date().getFullYear()} InvoiceCraft. Crafted with care.
         </div>
