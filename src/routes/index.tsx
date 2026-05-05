@@ -64,9 +64,7 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-
-      {/* Hero */}
-      <section className="bg-background">
+      <main>
         <div className="container mx-auto max-w-7xl px-6 py-20 md:py-28">
           <div className="flex flex-col items-center text-center">
             <p className="eyebrow">Invoice tool for modern freelancers</p>
