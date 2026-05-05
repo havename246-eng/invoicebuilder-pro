@@ -25,29 +25,34 @@ function NotFoundComponent() {
   );
 }
 
+const SITE_URL = "https://craft-bill-ai.lovable.app";
+const OG_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/13fcf9db-8c82-4bb5-8e10-c2d3451b5e21";
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "e-invoice builder | Invoice Craft" },
-      { name: "description", content: "Generate custom invoices in seconds. Easy-to-use invoice maker with professional templates. Download as PDF. Free for freelancers and businesses." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "e-invoice builder | Invoice Craft" },
-      { property: "og:description", content: "Generate custom invoices in seconds. Easy-to-use invoice maker with professional templates. Download as PDF. Free for freelancers and businesses." },
+      { title: "InvoiceCraft — Free Invoice Generator for Freelancers" },
+      { name: "description", content: "Create professional invoices in seconds. Free invoice maker with custom branding, multi-currency (USD & KHR), AI translation, and one-click PDF export." },
+      { name: "author", content: "InvoiceCraft" },
+      { name: "robots", content: "index, follow" },
+      { property: "og:site_name", content: "InvoiceCraft" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "e-invoice builder | Invoice Craft" },
-      { name: "twitter:description", content: "Generate custom invoices in seconds. Easy-to-use invoice maker with professional templates. Download as PDF. Free for freelancers and businesses." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/13fcf9db-8c82-4bb5-8e10-c2d3451b5e21" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/13fcf9db-8c82-4bb5-8e10-c2d3451b5e21" },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:title", content: "InvoiceCraft — Free Invoice Generator for Freelancers" },
+      { property: "og:description", content: "Create professional invoices in seconds. Custom branding, multi-currency, AI translation, and PDF export." },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "InvoiceCraft — Free Invoice Generator" },
+      { name: "twitter:description", content: "Create professional invoices in seconds. Custom branding, multi-currency, AI translation, and PDF export." },
+      { name: "twitter:image", content: OG_IMAGE },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "canonical", href: SITE_URL },
     ],
   }),
   shellComponent: RootShell,

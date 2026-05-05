@@ -15,11 +15,19 @@ import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { exportPDF, exportPNG } from "@/lib/export";
 
+const BUILDER_URL = "https://craft-bill-ai.lovable.app/builder";
+
 export const Route = createFileRoute("/builder")({
   head: () => ({
     meta: [
-      { title: "Builder — InvoiceCraft" },
-      { name: "description", content: "Craft a beautiful invoice with live preview, themes, bilingual KH/EN, and one-click PDF/PNG export." },
+      { title: "Invoice Builder — Create & Export Invoices | InvoiceCraft" },
+      { name: "description", content: "Build beautiful invoices with live preview, custom branding, bilingual KH/EN support, multi-currency formatting, and one-click PDF/PNG export. Free, no sign-up required." },
+      { property: "og:title", content: "Invoice Builder — InvoiceCraft" },
+      { property: "og:description", content: "Build and export professional invoices with live preview, custom branding, and multi-currency support." },
+      { property: "og:url", content: BUILDER_URL },
+    ],
+    links: [
+      { rel: "canonical", href: BUILDER_URL },
     ],
   }),
   component: Builder,

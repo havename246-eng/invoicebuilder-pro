@@ -5,13 +5,46 @@ import { SiteHeader } from "@/components/site/Header";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice } from "@/lib/invoice";
 
+const SITE_URL = "https://craft-bill-ai.lovable.app";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "InvoiceCraft — Beautiful invoices in seconds" },
-      { name: "description", content: "Professional, multilingual e-invoices with custom branding, KHR/USD support, and one-click PDF export." },
-      { property: "og:title", content: "InvoiceCraft — Beautiful invoices in seconds" },
-      { property: "og:description", content: "Professional invoices with AI translation, branding, and KHR/USD support." },
+      { title: "InvoiceCraft — Free Invoice Generator | Create Beautiful Invoices" },
+      { name: "description", content: "Create professional, multilingual invoices in seconds. Free invoice maker with custom branding, KHR & USD currency support, AI translation, and one-click PDF/PNG export for freelancers and small businesses." },
+      { property: "og:title", content: "InvoiceCraft — Free Invoice Generator" },
+      { property: "og:description", content: "Create professional invoices with custom branding, multi-currency, AI translation, and instant PDF export. Free for freelancers." },
+      { property: "og:url", content: SITE_URL },
+    ],
+    links: [
+      { rel: "canonical", href: SITE_URL },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "InvoiceCraft",
+          "url": SITE_URL,
+          "description": "Free invoice generator for freelancers and small businesses. Create professional invoices with custom branding, multi-currency support, and PDF export.",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Any",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+          },
+          "featureList": [
+            "Custom branding & logo upload",
+            "Multi-currency (USD & KHR Riel)",
+            "AI-powered translation (100+ languages)",
+            "PDF & PNG export",
+            "Payment QR code embedding",
+            "Real-time invoice preview",
+          ],
+        }),
+      },
     ],
   }),
   component: Landing,
@@ -31,9 +64,9 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-
+      <main>
       {/* Hero */}
-      <section className="bg-background">
+      <section className="bg-background" aria-label="Hero">
         <div className="container mx-auto max-w-7xl px-6 py-20 md:py-28">
           <div className="flex flex-col items-center text-center">
             <p className="eyebrow">Invoice tool for modern freelancers</p>
@@ -110,8 +143,9 @@ function Landing() {
           </Button>
         </div>
       </section>
+      </main>
 
-      <footer className="border-t border-border bg-background py-8">
+      <footer className="border-t border-border bg-background py-8" role="contentinfo">
         <div className="container mx-auto max-w-7xl px-6 text-center text-[13px] text-muted-foreground">
           © {new Date().getFullYear()} InvoiceCraft. Crafted with care.
         </div>
