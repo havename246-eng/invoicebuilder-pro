@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { Languages, Palette, FileDown, Coins, QrCode, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
@@ -147,14 +148,7 @@ function Landing() {
 
       <footer className="border-t border-border bg-background py-8" role="contentinfo">
         <div className="container mx-auto max-w-7xl px-6 flex flex-col items-center gap-3 text-[13px] text-muted-foreground">
-          <a
-            href="https://buymeacoffee.com/invoicecraft"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md bg-[#FFDD00] px-3 py-1.5 text-[13px] font-medium text-[#000000] transition-opacity hover:opacity-80"
-          >
-            ☕ Buy me a coffee
-          </a>
+          <BuyMeACoffee />
           <span>© {new Date().getFullYear()} InvoiceCraft. Crafted with care.</span>
         </div>
       </footer>
