@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { Languages, Palette, FileDown, Coins, QrCode, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
@@ -58,6 +59,26 @@ const features = [
   { icon: FileDown, title: "PDF & PNG export", desc: "Print-ready exports optimized for client delivery." },
   { icon: Sparkles, title: "Smart fields", desc: "Optional fields auto-hide. Real-time totals & tax." },
 ];
+
+function BuyMeACoffee() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js";
+    script.setAttribute("data-name", "bmc-button");
+    script.setAttribute("data-slug", "invoicecraft");
+    script.setAttribute("data-color", "#FFDD00");
+    script.setAttribute("data-emoji", "🍕");
+    script.setAttribute("data-font", "Cookie");
+    script.setAttribute("data-text", "Buy me a pizza");
+    script.setAttribute("data-outline-color", "#000000");
+    script.setAttribute("data-font-color", "#000000");
+    script.setAttribute("data-coffee-color", "#ffffff");
+    document.body.appendChild(script);
+    return () => { script.remove(); };
+  }, []);
+  return <div ref={containerRef} />;
+}
 
 function Landing() {
   const sample = defaultInvoice();
@@ -147,14 +168,7 @@ function Landing() {
 
       <footer className="border-t border-border bg-background py-8" role="contentinfo">
         <div className="container mx-auto max-w-7xl px-6 flex flex-col items-center gap-3 text-[13px] text-muted-foreground">
-          <a
-            href="https://buymeacoffee.com/invoicecraft"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md bg-[#FFDD00] px-3 py-1.5 text-[13px] font-medium text-[#000000] transition-opacity hover:opacity-80"
-          >
-            ☕ Buy me a coffee
-          </a>
+          <BuyMeACoffee />
           <span>© {new Date().getFullYear()} InvoiceCraft. Crafted with care.</span>
         </div>
       </footer>
