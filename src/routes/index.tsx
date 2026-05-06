@@ -146,8 +146,16 @@ function Landing() {
       </main>
 
       <footer className="border-t border-border bg-background py-8" role="contentinfo">
-        <div className="container mx-auto max-w-7xl px-6 text-center text-[13px] text-muted-foreground">
-          © {new Date().getFullYear()} InvoiceCraft. Crafted with care.
+        <div className="container mx-auto max-w-7xl px-6 flex flex-col items-center gap-3 text-[13px] text-muted-foreground">
+          <a
+            href="https://buymeacoffee.com/invoicecraft"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md bg-[#FFDD00] px-3 py-1.5 text-[13px] font-medium text-[#000000] transition-opacity hover:opacity-80"
+          >
+            ☕ Buy me a coffee
+          </a>
+          <span>© {new Date().getFullYear()} InvoiceCraft. Crafted with care.</span>
         </div>
       </footer>
     </div>
