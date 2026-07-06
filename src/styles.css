@@ -4,11 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&family=Rethink+Sans:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap');
 
 @theme inline {
-  --font-sans: 'Geist Mono', monospace;
-  --font-display: 'Geist Mono', monospace;
+  --font-sans: 'Rethink Sans', sans-serif;
+  --font-display: 'Rethink Sans', sans-serif;
   --font-mono: 'Geist Mono', monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -42,10 +42,49 @@
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
   --color-panel: var(--panel);
+
+  --color-ink-canvas: var(--ink-canvas);
+  --color-ink-canvas-elevated: var(--ink-canvas-elevated);
+  --color-ink-subtext: var(--ink-subtext);
+  --color-ink-border: var(--ink-border);
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+  --color-blue-900: var(--blue-900);
+  --color-blue-950: var(--blue-950);
+  --color-accent-lime: var(--accent-lime);
 }
 
 :root {
   --radius: 0.5rem;
+
+  /* Brand blue scale */
+  --blue-50: #EFF7FF;
+  --blue-100: #DBECFE;
+  --blue-200: #BFDFFE;
+  --blue-300: #94CBFC;
+  --blue-400: #61AEF9;
+  --blue-500: #3C8DF5;
+  --blue-600: #266FEA;
+  --blue-700: #1F5BDB;
+  --blue-800: #1F49AE;
+  --blue-900: #1F4189;
+  --blue-950: #172854;
+
+  /* Single warm accent — reserved for the one primary action per page */
+  --accent-lime: #E5DB1C;
+
+  /* Dark "control room" canvas — nav (default) + hero + closing CTA */
+  --ink-canvas: var(--blue-950);
+  --ink-canvas-elevated: var(--blue-900);
+  --ink-subtext: var(--blue-300);
+  --ink-border: var(--blue-400);
 
   /* Warm minimal palette */
   --background: #FAFAF9;
@@ -60,15 +99,15 @@
   --popover: #FFFFFF;
   --popover-foreground: #1A1916;
 
-  --primary: #1A1916;
+  --primary: var(--blue-900);
   --primary-foreground: #FFFFFF;
 
   --secondary: #F5F3F0;
   --secondary-foreground: #1A1916;
   --muted: #F5F3F0;
   --muted-foreground: #6B6760;
-  --accent: #F5F3F0;
-  --accent-foreground: #1A1916;
+  --accent: var(--blue-100);
+  --accent-foreground: var(--blue-900);
 
   --destructive: #C0392B;
   --destructive-foreground: #FFFFFF;
@@ -77,7 +116,7 @@
 
   --border: #E8E5E0;
   --input: #D8D4CE;
-  --ring: #1A1916;
+  --ring: var(--blue-900);
 
   /* Shadows — subtle, no color */
   --shadow-card: 0 2px 16px rgba(0,0,0,0.06);
