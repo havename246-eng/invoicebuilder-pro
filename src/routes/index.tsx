@@ -126,7 +126,7 @@ function FeatureRow({
 
         <Button
           asChild
-          size="sm"
+          size="lg"
           className="mt-6 rounded-full bg-blue-900 px-6 text-white hover:bg-blue-900/90"
         >
           <Link to="/builder">{ctaLabel}</Link>
@@ -208,7 +208,7 @@ function Landing() {
               {saveTime.map((s) => (
                 <div
                   key={s.label}
-                  className="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-6 text-center transition-smooth hover:border-blue-300"
+                  className="flex flex-col items-center gap-3 rounded-xl bg-surface p-6 text-center shadow-card transition-smooth hover:shadow-card-hover"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100">
                     <s.icon className="h-5 w-5 text-blue-900" aria-hidden="true" />

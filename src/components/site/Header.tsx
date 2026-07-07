@@ -139,7 +139,7 @@ export function SiteHeader() {
           </nav>
           <Button
             asChild
-            size="sm"
+            size="lg"
             className={cn(
               "rounded-full px-5 py-2.5 text-[13px] transition-smooth",
               scrolled

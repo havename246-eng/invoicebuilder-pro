@@ -84,17 +84,17 @@ function Builder() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      <div className="container mx-auto max-w-[1500px] px-4 py-8 md:px-6">
+      <div className="container mx-auto max-w-[1500px] px-6 py-8">
         {/* Toolbar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl">Invoice Builder</h1>
-            <p className="text-sm text-muted-foreground">Live preview · Auto-saved · Bilingual KH/EN</p>
+            <h1 className="text-[28px]">Invoice Builder</h1>
+            <p className="text-[15px] text-muted-foreground">Live preview · Auto-saved · Bilingual KH/EN</p>
           </div>
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="rounded-[6px] bg-primary text-primary-foreground hover:opacity-90" disabled={!!exporting}>
+                <Button size="lg" className="rounded-full" disabled={!!exporting}>
                   {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Export
                 </Button>
@@ -113,7 +113,7 @@ function Builder() {
 
         {/* Split */}
         <div className="grid gap-8 lg:grid-cols-2">
-          <div className="no-print rounded-lg bg-panel p-4">
+          <div className="no-print">
             <InvoiceForm data={data} onChange={setData} />
           </div>
           <div className="lg:sticky lg:top-24 lg:self-start">

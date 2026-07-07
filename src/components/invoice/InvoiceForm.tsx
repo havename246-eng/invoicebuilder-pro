@@ -173,7 +173,7 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
         </div>
 
-        <div className="mt-5 flex items-center justify-between rounded-lg border border-border bg-surface px-5 py-4">
+        <div className="mt-5 flex items-center justify-between rounded-lg bg-muted px-5 py-4">
           <div>
             <p className="text-sm font-medium">Free Delivery tag</p>
             <p className="text-xs text-muted-foreground">Show a "Free Delivery" badge on the invoice.</p>
@@ -186,7 +186,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       <Section title="Line items" subtitle="What you're charging for">
         <div className="space-y-4">
           {data.items.map((item) => (
-            <div key={item.id} className="grid gap-3 rounded-lg border border-border bg-surface p-4 sm:grid-cols-[1fr_80px_120px_auto]">
+            <div key={item.id} className="grid gap-3 rounded-lg bg-muted p-4 sm:grid-cols-[1fr_80px_120px_auto]">
               <Input placeholder="Description" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} />
               <Input type="number" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })} />
               <Input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(item.id, { price: Number(e.target.value) })} />
@@ -224,7 +224,7 @@ export function InvoiceForm({ data, onChange }: Props) {
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-surface p-7">
+    <section className="rounded-lg bg-surface p-7 shadow-card">
       <div className="mb-6">
         <h3 className="text-sm font-semibold">{title}</h3>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
