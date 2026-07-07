@@ -46,10 +46,10 @@ export function InvoiceForm({ data, onChange }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Customization */}
       <Section title="Customize" subtitle="Theme, language & paper size">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Language">
             <Select value={data.language} onValueChange={(v) => update("language", v as InvoiceLanguage)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -71,7 +71,7 @@ export function InvoiceForm({ data, onChange }: Props) {
             </Select>
           </Field>
           <Field label="Theme" className="sm:col-span-2">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 gap-3">
               {(Object.keys(THEMES) as InvoiceTheme[]).map((key) => {
                 const th = THEMES[key];
                 const active = data.theme === key;
@@ -80,14 +80,14 @@ export function InvoiceForm({ data, onChange }: Props) {
                     key={key}
                     type="button"
                     onClick={() => update("theme", key)}
-                    className={`group rounded-lg border p-2 text-left transition-smooth ${
+                    className={`group rounded-lg border p-2.5 text-left transition-smooth ${
                       active ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/30"
                     }`}
                   >
                     <div className="flex h-12 items-center justify-center rounded-md" style={{ background: th.bg, border: `1px solid ${th.border}` }}>
                       <div className="h-6 w-6 rounded" style={{ background: th.accent }} />
                     </div>
-                    <p className="mt-1.5 truncate text-[10px] text-muted-foreground">{th.name}</p>
+                    <p className="mt-2 truncate text-[10px] text-muted-foreground">{th.name}</p>
                   </button>
                 );
               })}
@@ -104,7 +104,7 @@ export function InvoiceForm({ data, onChange }: Props) {
 
       {/* From */}
       <Section title="From" subtitle="Your business details">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Company name">
             <Input value={data.senderName} onChange={(e) => update("senderName", e.target.value)} />
           </Field>
@@ -122,7 +122,7 @@ export function InvoiceForm({ data, onChange }: Props) {
 
       {/* Bill to */}
       <Section title="Bill to" subtitle="Client details">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Client name">
             <Input value={data.clientName} onChange={(e) => update("clientName", e.target.value)} />
           </Field>
@@ -137,7 +137,7 @@ export function InvoiceForm({ data, onChange }: Props) {
 
       {/* Details */}
       <Section title="Invoice details">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-3">
           <Field label="Invoice #">
             <Input value={data.invoiceNumber} onChange={(e) => update("invoiceNumber", e.target.value)} />
           </Field>
@@ -173,7 +173,7 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
+        <div className="mt-5 flex items-center justify-between rounded-lg border border-border bg-surface px-5 py-4">
           <div>
             <p className="text-sm font-medium">Free Delivery tag</p>
             <p className="text-xs text-muted-foreground">Show a "Free Delivery" badge on the invoice.</p>
@@ -184,9 +184,9 @@ export function InvoiceForm({ data, onChange }: Props) {
 
       {/* Items */}
       <Section title="Line items" subtitle="What you're charging for">
-        <div className="space-y-3">
+        <div className="space-y-4">
           {data.items.map((item) => (
-            <div key={item.id} className="grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-[1fr_80px_120px_auto]">
+            <div key={item.id} className="grid gap-3 rounded-lg border border-border bg-surface p-4 sm:grid-cols-[1fr_80px_120px_auto]">
               <Input placeholder="Description" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} />
               <Input type="number" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })} />
               <Input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(item.id, { price: Number(e.target.value) })} />
@@ -203,7 +203,7 @@ export function InvoiceForm({ data, onChange }: Props) {
 
       {/* Payment */}
       <Section title="Payment" subtitle="Bank info & QR code (optional)">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Bank name">
             <Input value={data.bankName} onChange={(e) => update("bankName", e.target.value)} />
           </Field>
@@ -224,8 +224,8 @@ export function InvoiceForm({ data, onChange }: Props) {
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-surface p-6">
-      <div className="mb-5">
+    <section className="rounded-lg border border-border bg-surface p-7">
+      <div className="mb-6">
         <h3 className="text-sm font-semibold">{title}</h3>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
@@ -236,7 +236,7 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`space-y-1.5 ${className ?? ""}`}>
+    <div className={`space-y-2 ${className ?? ""}`}>
       <Label className="eyebrow">{label}</Label>
       {children}
     </div>

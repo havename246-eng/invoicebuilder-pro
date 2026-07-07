@@ -138,8 +138,8 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
         </div>
 
         {/* Bill to */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", padding: "24px 0" }}>
-          <div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", padding: "24px 0" }}>
+          <div style={{ flex: "2 1 200px" }}>
             <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
               {t(lang, "billTo")}
             </p>
@@ -148,7 +148,7 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             {data.clientAddress && <p style={{ fontSize: "12px", color: theme.muted, margin: "2px 0 0" }}>{data.clientAddress}</p>}
           </div>
           {data.issueDate && (
-            <div>
+            <div style={{ flex: "1 1 120px" }}>
               <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
                 {t(lang, "issued")}
               </p>
@@ -156,7 +156,7 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             </div>
           )}
           {data.dueDate && (
-            <div>
+            <div style={{ flex: "1 1 120px" }}>
               <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>
                 {t(lang, "due")}
               </p>
@@ -247,12 +247,13 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
               marginTop: "28px",
               paddingTop: "20px",
               borderTop: `1px solid ${theme.border}`,
-              display: "grid",
-              gridTemplateColumns: "1fr auto",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
               gap: "24px",
             }}
           >
-            <div>
+            <div style={{ flex: "1 1 240px" }}>
               {(data.bankName || data.bankAccount) && (
                 <>
                   <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: theme.muted, margin: 0 }}>

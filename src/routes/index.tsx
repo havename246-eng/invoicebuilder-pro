@@ -159,8 +159,10 @@ function Landing() {
         <section className="bg-ink-canvas" aria-label="Hero">
           <div className="container mx-auto max-w-7xl px-6 pt-20 pb-16 md:pt-28 md:pb-20">
             <div className="flex flex-col items-center text-center">
-              <h1 className="text-[34px] font-bold leading-[1.15] text-white max-w-3xl md:text-[52px]">
-                Instant e-invoices for small business — translated by AI, paid faster.
+              <h1 className="text-[34px] font-bold leading-[1.15] text-white max-w-2xl md:max-w-6xl md:text-[52px]">
+                Instant e-invoices for small business
+                <br />
+                translated by AI, paid faster.
               </h1>
               <p className="mt-6 max-w-xl text-[16px] text-ink-subtext">
                 InvoiceCraft brings billing, translation, and payment into one place, so small
@@ -251,32 +253,7 @@ function Landing() {
                 ]}
                 ctaLabel="Explore branding"
               >
-                <div className="rounded-2xl border border-border bg-blue-50 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-900 text-base font-bold text-white">
-                      A
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Acme Studio</p>
-                      <p className="text-xs text-muted-foreground">billing@acme.studio</p>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {["English", "ខ្មែរ", "中文", "ไทย", "日本語"].map((lang, i) => (
-                      <span
-                        key={lang}
-                        className={cn(
-                          "rounded-full px-3 py-1 text-xs font-medium",
-                          i === 0
-                            ? "bg-blue-900 text-white"
-                            : "border border-border bg-white text-muted-foreground",
-                        )}
-                      >
-                        {lang}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <div className="aspect-square w-full rounded-2xl" style={{ backgroundColor: "#60adf9" }} />
               </FeatureRow>
 
               <FeatureRow
@@ -298,22 +275,7 @@ function Landing() {
                 ctaLabel="Explore currencies"
                 reverse
               >
-                <div className="rounded-2xl border border-border bg-blue-50 p-6">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span className="font-mono">$4,320.00</span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Tax (10%)</span>
-                    <span className="font-mono">$432.00</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-base font-bold text-foreground">
-                    <span>Total</span>
-                    <span className="font-mono">
-                      $4,752.00 <span className="text-blue-900">/ ៛19,008,000</span>
-                    </span>
-                  </div>
-                </div>
+                <div className="aspect-square w-full rounded-2xl" style={{ backgroundColor: "#60adf9" }} />
               </FeatureRow>
 
               <FeatureRow
@@ -334,19 +296,7 @@ function Landing() {
                 ]}
                 ctaLabel="Explore payments"
               >
-                <div className="flex items-center gap-6 rounded-2xl border border-border bg-blue-50 p-6">
-                  <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-border bg-white">
-                    <QrCode className="h-14 w-14 text-blue-900" aria-hidden="true" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-foreground">
-                      <FileDown className="h-3.5 w-3.5" aria-hidden="true" /> PDF export
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-foreground">
-                      <FileDown className="h-3.5 w-3.5" aria-hidden="true" /> PNG export
-                    </span>
-                  </div>
-                </div>
+                <div className="aspect-square w-full rounded-2xl" style={{ backgroundColor: "#60adf9" }} />
               </FeatureRow>
             </div>
           </div>

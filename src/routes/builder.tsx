@@ -112,7 +112,7 @@ function Builder() {
         </div>
 
         {/* Split */}
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+        <div className="grid gap-8 lg:grid-cols-2">
           <div className="no-print rounded-lg bg-panel p-4">
             <InvoiceForm data={data} onChange={setData} />
           </div>
