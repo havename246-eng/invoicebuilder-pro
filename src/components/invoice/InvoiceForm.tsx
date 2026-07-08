@@ -1,4 +1,5 @@
-import { Plus, Trash2, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,8 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  GOOGLE_FONTS,
   THEMES,
   type Currency,
+  type GoogleFont,
   type InvoiceData,
   type InvoiceLanguage,
   type InvoiceStatus,
@@ -15,6 +18,11 @@ import {
   type LineItem,
   type PaperSize,
 } from "@/lib/invoice";
+
+const DEFAULT_FONT_VALUE = "__default__";
+
+const BANKS = ["ACLEDA Bank", "ABA Bank", "Vattanac Bank", "Canadia Bank", "Wing Bank"];
+const CUSTOM_BANK_VALUE = "__custom__";
 
 interface Props {
   data: InvoiceData;
@@ -46,7 +54,7 @@ export function InvoiceForm({ data, onChange }: Props) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Customization */}
       <Section title="Customize" subtitle="Theme, language & paper size">
         <div className="grid gap-5 sm:grid-cols-2">
@@ -71,7 +79,7 @@ export function InvoiceForm({ data, onChange }: Props) {
             </Select>
           </Field>
           <Field label="Theme" className="sm:col-span-2">
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {(Object.keys(THEMES) as InvoiceTheme[]).map((key) => {
                 const th = THEMES[key];
                 const active = data.theme === key;
@@ -103,7 +111,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       </Section>
 
       {/* From */}
-      <Section title="From" subtitle="Your business details">
+      <Section title="From" subtitle="Your business details" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Company name">
             <Input value={data.senderName} onChange={(e) => update("senderName", e.target.value)} />
@@ -121,7 +129,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       </Section>
 
       {/* Bill to */}
-      <Section title="Bill to" subtitle="Client details">
+      <Section title="Bill to" subtitle="Client details" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Client name">
             <Input value={data.clientName} onChange={(e) => update("clientName", e.target.value)} />
@@ -136,7 +144,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       </Section>
 
       {/* Details */}
-      <Section title="Invoice details">
+      <Section title="Invoice details" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-3">
           <Field label="Invoice #">
             <Input value={data.invoiceNumber} onChange={(e) => update("invoiceNumber", e.target.value)} />
@@ -173,7 +181,7 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
         </div>
 
-        <div className="mt-5 flex items-center justify-between rounded-lg bg-muted px-5 py-4">
+        <div className="mt-5 flex items-center justify-between border-t border-border pt-5">
           <div>
             <p className="text-sm font-medium">Free Delivery tag</p>
             <p className="text-xs text-muted-foreground">Show a "Free Delivery" badge on the invoice.</p>
@@ -183,18 +191,43 @@ export function InvoiceForm({ data, onChange }: Props) {
       </Section>
 
       {/* Items */}
-      <Section title="Line items" subtitle="What you're charging for">
+      <Section title="Line items" subtitle="What you're charging for" defaultOpen={false}>
         <div className="space-y-4">
+          <div className="divide-y divide-border rounded-xl border border-border">
           {data.items.map((item) => (
-            <div key={item.id} className="grid gap-3 rounded-lg bg-muted p-4 sm:grid-cols-[1fr_80px_120px_auto]">
-              <Input placeholder="Description" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} />
-              <Input type="number" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })} />
-              <Input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(item.id, { price: Number(e.target.value) })} />
-              <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-destructive">
+            <div key={item.id} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-[1fr_80px_120px_auto] sm:items-center">
+              <Input
+                placeholder="Description"
+                value={item.description}
+                onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                className="col-span-2 sm:col-span-1"
+              />
+              <Input
+                placeholder="Qty"
+                type="number"
+                min="0"
+                value={item.quantity}
+                onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })}
+              />
+              <Input
+                placeholder="Price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={item.price}
+                onChange={(e) => updateItem(item.id, { price: Number(e.target.value) })}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeItem(item.id)}
+                className="col-span-2 justify-self-end text-muted-foreground hover:text-destructive sm:col-span-1 sm:justify-self-auto"
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           ))}
+          </div>
           <Button variant="outline" onClick={addItem} className="w-full border-dashed">
             <Plus className="mr-2 h-4 w-4" /> Add item
           </Button>
@@ -202,10 +235,10 @@ export function InvoiceForm({ data, onChange }: Props) {
       </Section>
 
       {/* Payment */}
-      <Section title="Payment" subtitle="Bank info & QR code (optional)">
+      <Section title="Payment" subtitle="Bank info & QR code (optional)" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Bank name">
-            <Input value={data.bankName} onChange={(e) => update("bankName", e.target.value)} />
+            <BankNameField value={data.bankName} onChange={(v) => update("bankName", v)} />
           </Field>
           <Field label="Account number">
             <Input value={data.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
@@ -218,19 +251,135 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
         </div>
       </Section>
+
+      {/* Advanced settings */}
+      <Section title="Advanced settings" subtitle="Fine-tune typography" defaultOpen={false}>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Invoice font">
+            <Select
+              value={data.invoiceFont ?? DEFAULT_FONT_VALUE}
+              onValueChange={(v) => update("invoiceFont", v === DEFAULT_FONT_VALUE ? null : (v as GoogleFont))}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DEFAULT_FONT_VALUE}>Default (Rethink Sans)</SelectItem>
+                {GOOGLE_FONTS.map((font) => (
+                  <SelectItem key={font} value={font} style={{ fontFamily: `'${font}', sans-serif` }}>
+                    {font}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Loaded from Google Fonts and applied to the invoice preview.</p>
+          </Field>
+        </div>
+      </Section>
     </div>
   );
 }
 
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  subtitle,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  // Only animate the height while an actual open/close toggle is in flight — if the
+  // transition classes stayed on permanently, any unrelated content resize inside
+  // (e.g. a conditional field appearing) would get caught by the same
+  // grid-template-rows transition and bounce the whole card for no reason.
+  const [isToggling, setIsToggling] = useState(false);
+  const toggleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current);
+  }, []);
+
+  const toggle = () => {
+    setOpen((o) => !o);
+    setIsToggling(true);
+    if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current);
+    toggleTimeoutRef.current = setTimeout(() => setIsToggling(false), 720);
+  };
+
   return (
-    <section className="rounded-lg bg-surface p-7 shadow-card">
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+    <section className="rounded-2xl bg-surface shadow-card">
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex w-full items-center justify-between gap-4 p-4 text-left sm:p-7"
+        aria-expanded={open}
+      >
+        <div>
+          <h2 className="text-base font-bold">{title}</h2>
+          {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+          <ChevronDown
+            className={`h-4 w-4 text-blue-900 transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${open ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
+      <div
+        className={`grid min-w-0 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} ${isToggling ? "transition-[grid-template-rows] duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : ""}`}
+      >
+        <div className="min-w-0 overflow-hidden">
+          <div className="px-4 pb-4 sm:px-7 sm:pb-7">{children}</div>
+        </div>
       </div>
-      {children}
     </section>
+  );
+}
+
+function BankNameField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isPreset = BANKS.includes(value);
+  const [customMode, setCustomMode] = useState(() => value !== "" && !isPreset);
+  const [customText, setCustomText] = useState(() => (!isPreset ? value : ""));
+
+  return (
+    <div className="space-y-2">
+      <Select
+        value={customMode ? CUSTOM_BANK_VALUE : isPreset ? value : ""}
+        onValueChange={(v) => {
+          if (v === CUSTOM_BANK_VALUE) {
+            // Don't touch the stored bank name yet — switching to "Other" shouldn't blank
+            // it out (and ripple into the live preview) until the user actually types something.
+            setCustomMode(true);
+          } else {
+            setCustomMode(false);
+            onChange(v);
+          }
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select a bank" />
+        </SelectTrigger>
+        <SelectContent>
+          {BANKS.map((bank) => (
+            <SelectItem key={bank} value={bank}>
+              {bank}
+            </SelectItem>
+          ))}
+          <SelectItem value={CUSTOM_BANK_VALUE}>Other (type manually)</SelectItem>
+        </SelectContent>
+      </Select>
+      {customMode && (
+        <Input
+          placeholder="Enter bank name"
+          value={customText}
+          onChange={(e) => {
+            setCustomText(e.target.value);
+            onChange(e.target.value);
+          }}
+        />
+      )}
+    </div>
   );
 }
 

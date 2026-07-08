@@ -14,7 +14,9 @@ const safe = (s: string) =>
  *  - inherited OKLCH/oklab tokens from the page don't break parsing
  *  - the responsive scale() on the live preview doesn't distort the capture
  */
-async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promise<string> {
+type OnProgress = (pct: number) => void;
+
+async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize, onProgress?: OnProgress): Promise<string> {
   const widthPx = paperPxWidth(paperSize);
 
   const sandbox = document.createElement("div");
@@ -41,12 +43,14 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promi
 
   sandbox.appendChild(clone);
   document.body.appendChild(sandbox);
+  onProgress?.(10);
 
   // Wait for layout + fonts
   await new Promise((r) => requestAnimationFrame(() => r(null)));
   if (document.fonts?.ready) {
     try { await document.fonts.ready; } catch { /* noop */ }
   }
+  onProgress?.(25);
 
   // Pre-warm: load every image src via fresh Image() so the browser cache has them decoded
   const sources = Array.from(sourceEl.querySelectorAll("img"))
@@ -63,6 +67,7 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promi
         }),
     ),
   );
+  onProgress?.(45);
 
   // Strip crossOrigin on cloned images (data URLs don't need CORS, and the
   // attribute can cause silent re-fetch failures inside the cloned subtree).
@@ -91,6 +96,7 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promi
       }
     }),
   );
+  onProgress?.(65);
 
   try {
     const dataUrl = await toPng(clone, {
@@ -103,6 +109,7 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize): Promi
       // Skip external stylesheet rules we can't read (CORS); inline styles still apply
       skipFonts: false,
     });
+    onProgress?.(85);
     return dataUrl;
   } finally {
     sandbox.remove();
@@ -123,9 +130,12 @@ export async function exportPNG(
   invoiceNo: string,
   clientName: string,
   paperSize: PaperSize,
+  onProgress?: OnProgress,
 ) {
-  const dataUrl = await renderDataUrl(el, paperSize);
+  const dataUrl = await renderDataUrl(el, paperSize, onProgress);
+  onProgress?.(95);
   triggerDownload(dataUrl, `${safe(invoiceNo)}_${safe(clientName)}.png`);
+  onProgress?.(100);
 }
 
 export async function exportPDF(
@@ -133,8 +143,9 @@ export async function exportPDF(
   invoiceNo: string,
   clientName: string,
   paperSize: PaperSize,
+  onProgress?: OnProgress,
 ) {
-  const dataUrl = await renderDataUrl(el, paperSize);
+  const dataUrl = await renderDataUrl(el, paperSize, onProgress);
   const { w, h } = PAPER_DIMENSIONS[paperSize];
 
   const pdf = new jsPDF({
@@ -153,6 +164,7 @@ export async function exportPDF(
     i.onerror = () => reject(new Error("Failed to load rendered image"));
     i.src = dataUrl;
   });
+  onProgress?.(90);
 
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -172,6 +184,8 @@ export async function exportPDF(
       if (remaining > 0) pdf.addPage();
     }
   }
+  onProgress?.(98);
 
   pdf.save(`${safe(invoiceNo)}_${safe(clientName)}.pdf`);
+  onProgress?.(100);
 }

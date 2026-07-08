@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
@@ -13,6 +14,7 @@ if (typeof window !== "undefined") {
 
 export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" }) {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const lightLogoRef = useRef<HTMLImageElement>(null);
@@ -84,7 +86,7 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
     <header ref={headerRef} className="sticky top-0 z-40 flex justify-center px-0" role="banner">
       <div
         ref={pillRef}
-        className="container mx-auto flex w-full max-w-7xl items-center border border-transparent px-6 backdrop-blur-md"
+        className="container relative mx-auto flex w-full max-w-7xl items-center border border-transparent px-4 backdrop-blur-md sm:px-6"
         style={{ height: "4rem" }}
       >
         <div className="flex w-full items-center justify-between">
@@ -156,19 +158,67 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
               Features
             </a>
           </nav>
-          <Button
-            asChild
-            size="lg"
-            className={cn(
-              "rounded-full px-5 py-2.5 text-[13px] transition-smooth",
-              !isDark || scrolled
-                ? "bg-blue-900 text-white hover:bg-blue-900/90"
-                : "bg-white text-blue-900 hover:bg-white/90",
-            )}
-          >
-            <Link to="/builder">Create invoice</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              asChild
+              size="lg"
+              className={cn(
+                "rounded-full px-3.5 py-2 text-[12px] transition-smooth sm:px-5 sm:py-2.5 sm:text-[13px]",
+                !isDark || scrolled
+                  ? "bg-blue-900 text-white hover:bg-blue-900/90"
+                  : "bg-white text-blue-900 hover:bg-white/90",
+              )}
+            >
+              <Link to="/builder">Create invoice</Link>
+            </Button>
+            <button
+              type="button"
+              onClick={() => setMobileOpen((o) => !o)}
+              aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-smooth md:hidden",
+                !isDark || scrolled
+                  ? "text-foreground hover:bg-muted"
+                  : "text-white hover:bg-white/10",
+              )}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
+
+        {mobileOpen && (
+          <div className="absolute inset-x-0 top-full mt-2 px-4 md:hidden">
+            <nav
+              className="flex flex-col gap-1 rounded-2xl border border-border bg-white p-3 shadow-lg"
+              aria-label="Mobile navigation"
+            >
+              <Link
+                to="/"
+                activeOptions={{ exact: true }}
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+              >
+                Home
+              </Link>
+              <Link
+                to="/builder"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+              >
+                Builder
+              </Link>
+              <a
+                href="#features"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+              >
+                Features
+              </a>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

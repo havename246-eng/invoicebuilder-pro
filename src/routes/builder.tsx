@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Download, FileImage, FileText, Loader2 } from "lucide-react";
+import { Check, Download, FileImage, FileText } from "lucide-react";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,11 +34,38 @@ const STORAGE_KEY = "invoicecraft:data:v2";
 function Builder() {
   const [data, setData] = useState<InvoiceData>(defaultInvoice);
   const [exporting, setExporting] = useState<null | "png" | "pdf">(null);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportDone, setExportDone] = useState(false);
   const [exportType, setExportType] = useState<"png" | "pdf">("pdf");
   const highlightRef = useRef<HTMLDivElement>(null);
   const pngBtnRef = useRef<HTMLButtonElement>(null);
   const pdfBtnRef = useRef<HTMLButtonElement>(null);
   const mountedRef = useRef(false);
+  const progressFillRef = useRef<HTMLSpanElement>(null);
+  const checkRef = useRef<SVGSVGElement>(null);
+
+  const setProgressFillRef = (el: HTMLSpanElement | null) => {
+    progressFillRef.current = el;
+    if (el) gsap.set(el, { width: "0%" });
+  };
+
+  useEffect(() => {
+    if (!progressFillRef.current) return;
+    gsap.to(progressFillRef.current, {
+      width: `${exportDone ? 100 : exportProgress}%`,
+      duration: 0.8,
+      ease: "power2.out",
+    });
+  }, [exportProgress, exportDone]);
+
+  useEffect(() => {
+    if (!exportDone || !checkRef.current) return;
+    gsap.fromTo(
+      checkRef.current,
+      { scale: 0, opacity: 0, rotate: -45 },
+      { scale: 1, opacity: 1, rotate: 0, duration: 0.55, ease: "back.out(1.7)" },
+    );
+  }, [exportDone]);
 
   useEffect(() => {
     const target = exportType === "png" ? pngBtnRef.current : pdfBtnRef.current;
@@ -51,6 +78,17 @@ function Builder() {
     } else {
       gsap.to(highlight, { ...vars, duration: 0.35, ease: "power3.out" });
     }
+  }, [exportType]);
+
+  useEffect(() => {
+    const onResize = () => {
+      const target = exportType === "png" ? pngBtnRef.current : pdfBtnRef.current;
+      const highlight = highlightRef.current;
+      if (!target || !highlight) return;
+      gsap.set(highlight, { x: target.offsetLeft, width: target.offsetWidth });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [exportType]);
 
   useEffect(() => {
@@ -73,15 +111,19 @@ function Builder() {
       return;
     }
     setExporting(kind);
+    setExportProgress(0);
+    setExportDone(false);
     const tId = toast.loading(kind === "png" ? "Generating PNG…" : "Generating PDF…");
     try {
       if (kind === "png") {
-        await exportPNG(el, data.invoiceNumber, data.clientName, data.paperSize);
+        await exportPNG(el, data.invoiceNumber, data.clientName, data.paperSize, setExportProgress);
         toast.success("PNG downloaded", { id: tId });
       } else {
-        await exportPDF(el, data.invoiceNumber, data.clientName, data.paperSize);
+        await exportPDF(el, data.invoiceNumber, data.clientName, data.paperSize, setExportProgress);
         toast.success("PDF downloaded", { id: tId });
       }
+      setExportDone(true);
+      await new Promise((r) => setTimeout(r, 1300));
     } catch (e) {
       console.error("[export]", e);
       const msg = e instanceof Error ? e.message : "Unknown error";
@@ -91,38 +133,40 @@ function Builder() {
       toast.error("Export failed", { id: tId, description: `${msg} — ${hint}` });
     } finally {
       setExporting(null);
+      setExportProgress(0);
+      setExportDone(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-hidden bg-background">
       <SiteHeader variant="light" />
 
-      <div className="container mx-auto max-w-[1500px] px-6 py-8 pb-36">
+      <div className="container mx-auto max-w-[1500px] px-4 py-6 pb-36 sm:px-6 sm:py-8">
         {/* Toolbar */}
         <div className="mb-6">
-          <h1 className="text-[28px]">Invoice Builder</h1>
-          <p className="text-[15px] text-muted-foreground">Live preview · Auto-saved · Bilingual KH/EN</p>
+          <h1 className="text-[22px] sm:text-[28px]">Invoice Builder</h1>
+          <p className="text-sm text-muted-foreground sm:text-[15px]">Live preview · Auto-saved · Bilingual KH/EN</p>
         </div>
 
         {/* Split */}
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="no-print">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-8">
+          <div className="no-print min-w-0">
             <InvoiceForm data={data} onChange={setData} />
           </div>
-          <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="min-w-0 lg:sticky lg:top-24">
             <InvoicePreview data={data} />
           </div>
         </div>
       </div>
 
       {/* Floating export pill */}
-      <div className="no-print fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
-        <div className="flex items-center gap-2.5 rounded-full border border-border bg-white/95 p-2.5 shadow-lg backdrop-blur-md">
-          <div className="relative flex items-center gap-1.5 rounded-full bg-muted p-1.5">
+      <div className="no-print fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4">
+        <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/95 p-1.5 shadow-lg backdrop-blur-md sm:gap-2.5 sm:p-2.5">
+          <div className="relative flex items-center gap-1 rounded-full bg-muted p-1 sm:gap-1.5 sm:p-1.5">
             <div
               ref={highlightRef}
-              className="absolute inset-y-1.5 left-0 rounded-full bg-white shadow-sm"
+              className="absolute inset-y-1 left-0 rounded-full bg-white shadow-sm sm:inset-y-1.5"
               aria-hidden="true"
             />
             <button
@@ -130,32 +174,43 @@ function Builder() {
               type="button"
               onClick={() => setExportType("png")}
               className={cn(
-                "relative z-10 flex items-center gap-2 rounded-full px-5 py-3 text-base font-medium transition-smooth",
+                "relative z-10 flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-smooth sm:gap-2 sm:px-5 sm:py-3 sm:text-base",
                 exportType === "png" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <FileImage className="h-5 w-5" /> PNG
+              <FileImage className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">PNG</span>
             </button>
             <button
               ref={pdfBtnRef}
               type="button"
               onClick={() => setExportType("pdf")}
               className={cn(
-                "relative z-10 flex items-center gap-2 rounded-full px-5 py-3 text-base font-medium transition-smooth",
+                "relative z-10 flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-smooth sm:gap-2 sm:px-5 sm:py-3 sm:text-base",
                 exportType === "pdf" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <FileText className="h-5 w-5" /> PDF
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">PDF</span>
             </button>
           </div>
           <Button
             size="lg"
-            className="h-auto rounded-full bg-accent-lime px-7 py-3 text-base text-blue-950 hover:bg-accent-lime/90"
+            className="relative h-auto w-[92px] justify-center overflow-hidden rounded-full bg-accent-lime px-4 py-2 text-sm text-blue-950 hover:bg-accent-lime/90 sm:w-[148px] sm:px-7 sm:py-3 sm:text-base"
             disabled={!!exporting}
             onClick={() => handleExport(exportType)}
           >
-            {exporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
-            Export
+            {exporting && (
+              <span ref={setProgressFillRef} className="absolute inset-y-0 left-0 bg-blue-950/15" aria-hidden="true" />
+            )}
+            <span className="relative z-10 flex items-center">
+              {exportDone ? (
+                <Check ref={checkRef} className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+              ) : (
+                <Download className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+              )}
+              {exportDone ? "Done" : "Export"}
+            </span>
           </Button>
         </div>
       </div>

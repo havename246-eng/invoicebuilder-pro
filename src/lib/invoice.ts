@@ -4,6 +4,21 @@ export type InvoiceLanguage = "en" | "km";
 export type InvoiceTheme = "midnight" | "classic" | "minimal" | "emerald" | "sunset";
 export type PaperSize = "A4" | "Letter" | "A5" | "Legal";
 
+// ───────── Google Fonts (loaded on demand for the invoice preview) ─────────
+export const GOOGLE_FONTS = [
+  "Inter",
+  "Poppins",
+  "Roboto",
+  "Montserrat",
+  "Playfair Display",
+  "Lora",
+  "Merriweather",
+  "Work Sans",
+  "Open Sans",
+  "Nunito",
+] as const;
+export type GoogleFont = (typeof GOOGLE_FONTS)[number];
+
 export interface LineItem {
   id: string;
   description: string;
@@ -42,6 +57,8 @@ export interface InvoiceData {
   customHeader: string | null;
   customFooter: string | null;
   freeDelivery: boolean;
+  // Advanced
+  invoiceFont: GoogleFont | null;
 }
 
 export const formatMoney = (amount: number, currency: Currency) => {
@@ -87,6 +104,7 @@ export const defaultInvoice = (): InvoiceData => ({
   customHeader: null,
   customFooter: null,
   freeDelivery: false,
+  invoiceFont: null,
 });
 
 // ───────── i18n ─────────

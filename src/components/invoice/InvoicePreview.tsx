@@ -22,6 +22,18 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
+  // Load the chosen Google Font on demand (advanced settings) and inject its <link> once.
+  useEffect(() => {
+    if (!data.invoiceFont) return;
+    const id = `google-font-${data.invoiceFont.replace(/\s+/g, "-")}`;
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(data.invoiceFont)}:wght@400;500;600;700;800&display=swap`;
+    document.head.appendChild(link);
+  }, [data.invoiceFont]);
+
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -61,6 +73,9 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             boxSizing: "border-box",
             transform: `scale(${scale})`,
             transformOrigin: "top left",
+            fontFamily: data.invoiceFont
+              ? `'${data.invoiceFont}', 'Noto Sans Khmer', sans-serif`
+              : undefined,
           }}
         >
         {/* Custom header banner */}

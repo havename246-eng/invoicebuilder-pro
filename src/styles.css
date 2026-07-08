@@ -58,6 +58,17 @@
   --color-blue-800: var(--blue-800);
   --color-blue-900: var(--blue-900);
   --color-blue-950: var(--blue-950);
+  --color-lime-50: var(--lime-50);
+  --color-lime-100: var(--lime-100);
+  --color-lime-200: var(--lime-200);
+  --color-lime-300: var(--lime-300);
+  --color-lime-400: var(--lime-400);
+  --color-lime-500: var(--lime-500);
+  --color-lime-600: var(--lime-600);
+  --color-lime-700: var(--lime-700);
+  --color-lime-800: var(--lime-800);
+  --color-lime-900: var(--lime-900);
+  --color-lime-950: var(--lime-950);
   --color-accent-lime: var(--accent-lime);
 }
 
@@ -77,8 +88,21 @@
   --blue-900: #1F4189;
   --blue-950: #172854;
 
+  /* Lime scale — anchored at 500 on the original single warm accent (#E5DB1C) */
+  --lime-50: #FFFEE6;
+  --lime-100: #FEFBCD;
+  --lime-200: #FAF6A8;
+  --lime-300: #F6F079;
+  --lime-400: #F0E847;
+  --lime-500: #E5DB1C;
+  --lime-600: #C6BD10;
+  --lime-700: #A8A00B;
+  --lime-800: #888107;
+  --lime-900: #6B6606;
+  --lime-950: #423F05;
+
   /* Single warm accent — reserved for the one primary action per page */
-  --accent-lime: #E5DB1C;
+  --accent-lime: var(--lime-500);
 
   /* Dark "control room" canvas — nav (default) + hero + closing CTA */
   --ink-canvas: var(--blue-950);
@@ -87,7 +111,7 @@
   --ink-border: var(--blue-400);
 
   /* Warm minimal palette */
-  --background: #FAFAF9;
+  --background: #FCFCFC;
   --foreground: #1A1916;
 
   --surface: #FFFFFF;
@@ -133,6 +157,7 @@
   }
   html {
     overscroll-behavior-y: none;
+    scrollbar-gutter: stable;
   }
   body {
     margin: 0;
@@ -152,6 +177,20 @@
     font-family: var(--font-sans);
     font-weight: 600;
   }
+
+  /* Radix (react-remove-scroll-bar) hides the scrollbar and adds compensating
+     margin whenever a Select/Dialog/Popover opens. We already reserve the
+     scrollbar's space permanently via `scrollbar-gutter: stable` above, so
+     keep the real scrollbar visible instead of hiding it — this rule is
+     layered + !important, which per the CSS cascade beats their unlayered
+     !important rule regardless of source order or specificity. */
+  body[data-scroll-locked] {
+    overflow: auto !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+    padding-top: 0 !important;
+  }
 }
 
 @layer utilities {
@@ -168,9 +207,9 @@
   }
 }
 
-/* Bilingual invoice typography — Noto Sans (Latin) + Noto Sans Khmer */
+/* Bilingual invoice typography — Rethink Sans (brand) falls back to Noto Sans Khmer for Khmer glyphs it doesn't cover */
 .font-invoice {
-  font-family: 'Noto Sans', 'Noto Sans Khmer', system-ui, sans-serif;
+  font-family: 'Rethink Sans', 'Noto Sans', 'Noto Sans Khmer', system-ui, sans-serif;
   font-feature-settings: "liga", "kern";
 }
 .font-khmer {
