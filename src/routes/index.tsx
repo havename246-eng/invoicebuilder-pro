@@ -242,7 +242,7 @@ function Landing() {
       <SiteHeader />
       <main ref={mainRef}>
         {/* Hero */}
-        <section className="overflow-x-hidden bg-ink-canvas" aria-label="Hero">
+        <section className="bg-ink-canvas" aria-label="Hero">
           <div className="reveal-group container mx-auto max-w-7xl px-4 sm:px-6 pt-20 pb-16 md:pt-28 md:pb-20">
             <div className="flex flex-col items-center text-center">
               <h1 className="reveal-item text-[34px] font-bold leading-[1.15] text-white max-w-2xl md:max-w-6xl md:text-[52px]">
@@ -274,7 +274,7 @@ function Landing() {
             </div>
 
             {/* Floating product mockup */}
-            <div className="reveal-item relative mx-auto mt-14 max-w-3xl">
+            <div className="reveal-item relative mx-auto mt-14 max-w-3xl overflow-x-hidden">
               <div className="rounded-3xl bg-ink-canvas-elevated p-6 md:p-10">
                 <div className="mx-auto max-w-sm rounded-2xl bg-white p-3 sm:-rotate-2">
                   <InvoicePreview data={sample} />

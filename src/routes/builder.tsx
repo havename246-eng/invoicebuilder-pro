@@ -139,7 +139,8 @@ function Builder() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background">
+    <>
+    <div className="min-h-screen bg-background">
       <SiteHeader variant="light" />
 
       <div className="container mx-auto max-w-[1500px] px-4 py-6 pb-36 sm:px-6 sm:py-8">
@@ -159,8 +160,11 @@ function Builder() {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Floating export pill */}
+      {/* Floating export pill — kept outside the overflow-x-hidden wrapper above, since an
+          ancestor with non-visible overflow clips position:fixed descendants as the page
+          scrolls (a well-known CSS gotcha). */}
       <div className="no-print fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4">
         <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/95 p-1.5 shadow-lg backdrop-blur-md sm:gap-2.5 sm:p-2.5">
           <div className="relative flex items-center gap-1 rounded-full bg-muted p-1 sm:gap-1.5 sm:p-1.5">
@@ -214,6 +218,6 @@ function Builder() {
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
