@@ -74,7 +74,7 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             transform: `scale(${scale})`,
             transformOrigin: "top left",
             fontFamily: data.invoiceFont
-              ? `'${data.invoiceFont}', 'Noto Sans Khmer', sans-serif`
+              ? `'${data.invoiceFont}', 'Kantumruy Pro', sans-serif`
               : undefined,
           }}
         >

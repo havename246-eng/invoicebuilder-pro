@@ -1,10 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&family=Rethink+Sans:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&display=swap');
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&family=Rethink+Sans:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap');
 
 @theme inline {
   --font-sans: 'Rethink Sans', sans-serif;
@@ -207,11 +206,11 @@
   }
 }
 
-/* Bilingual invoice typography — Rethink Sans (brand) falls back to Noto Sans Khmer for Khmer glyphs it doesn't cover */
+/* Bilingual invoice typography — Rethink Sans (brand) falls back to Kantumruy Pro for Khmer glyphs it doesn't cover */
 .font-invoice {
-  font-family: 'Rethink Sans', 'Noto Sans', 'Noto Sans Khmer', system-ui, sans-serif;
+  font-family: 'Rethink Sans', 'Noto Sans', 'Kantumruy Pro', system-ui, sans-serif;
   font-feature-settings: "liga", "kern";
 }
 .font-khmer {
-  font-family: 'Noto Sans Khmer', 'Noto Sans', system-ui, sans-serif;
+  font-family: 'Kantumruy Pro', 'Noto Sans', system-ui, sans-serif;
 }
