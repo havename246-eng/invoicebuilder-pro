@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   GOOGLE_FONTS,
+  SCRIPT_FONTS,
   THEMES,
   type Currency,
   type GoogleFont,
@@ -59,11 +60,20 @@ export function InvoiceForm({ data, onChange }: Props) {
       <Section title="Customize" subtitle="Theme, language & paper size">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Language">
-            <Select value={data.language} onValueChange={(v) => update("language", v as InvoiceLanguage)}>
+            <Select
+              value={data.language}
+              onValueChange={(v) => {
+                const language = v as InvoiceLanguage;
+                onChange({ ...data, language, invoiceFont: SCRIPT_FONTS[language] ?? null });
+              }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="km">ខ្មែរ (Khmer)</SelectItem>
+                <SelectItem value="zh">中文 (Chinese)</SelectItem>
+                <SelectItem value="ja">日本語 (Japanese)</SelectItem>
+                <SelectItem value="ko">한국어 (Korean)</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -101,11 +111,11 @@ export function InvoiceForm({ data, onChange }: Props) {
               })}
             </div>
           </Field>
-          <Field label="Custom header (optional)">
-            <ImageUpload value={data.customHeader} onClear={() => update("customHeader", null)} onUpload={(f) => handleImage("customHeader", f)} label="Upload header" />
+          <Field label="Custom header">
+            <ComingSoonUpload value={data.customHeader} onClear={() => update("customHeader", null)} />
           </Field>
-          <Field label="Custom footer (optional)">
-            <ImageUpload value={data.customFooter} onClear={() => update("customFooter", null)} onUpload={(f) => handleImage("customFooter", f)} label="Upload footer" />
+          <Field label="Custom footer">
+            <ComingSoonUpload value={data.customFooter} onClear={() => update("customFooter", null)} />
           </Field>
         </div>
       </Section>
@@ -114,13 +124,13 @@ export function InvoiceForm({ data, onChange }: Props) {
       <Section title="From" subtitle="Your business details" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Company name">
-            <Input value={data.senderName} onChange={(e) => update("senderName", e.target.value)} />
+            <Input placeholder="Your Company Ltd." value={data.senderName} onChange={(e) => update("senderName", e.target.value)} />
           </Field>
           <Field label="Email">
-            <Input type="email" value={data.senderEmail} onChange={(e) => update("senderEmail", e.target.value)} />
+            <Input type="email" placeholder="billing@yourcompany.com" value={data.senderEmail} onChange={(e) => update("senderEmail", e.target.value)} />
           </Field>
           <Field label="Address (optional)" className="sm:col-span-2">
-            <Input value={data.senderAddress} onChange={(e) => update("senderAddress", e.target.value)} />
+            <Input placeholder="123 Main St, City" value={data.senderAddress} onChange={(e) => update("senderAddress", e.target.value)} />
           </Field>
           <Field label="Logo (optional)" className="sm:col-span-2">
             <ImageUpload value={data.logo} onClear={() => update("logo", null)} onUpload={(f) => handleImage("logo", f)} label="Upload logo" />
@@ -132,13 +142,13 @@ export function InvoiceForm({ data, onChange }: Props) {
       <Section title="Bill to" subtitle="Client details" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Client name">
-            <Input value={data.clientName} onChange={(e) => update("clientName", e.target.value)} />
+            <Input placeholder="Client company or name" value={data.clientName} onChange={(e) => update("clientName", e.target.value)} />
           </Field>
           <Field label="Email (optional)">
-            <Input type="email" value={data.clientEmail} onChange={(e) => update("clientEmail", e.target.value)} />
+            <Input type="email" placeholder="client@email.com" value={data.clientEmail} onChange={(e) => update("clientEmail", e.target.value)} />
           </Field>
           <Field label="Address (optional)" className="sm:col-span-2">
-            <Input value={data.clientAddress} onChange={(e) => update("clientAddress", e.target.value)} />
+            <Input placeholder="Client address" value={data.clientAddress} onChange={(e) => update("clientAddress", e.target.value)} />
           </Field>
         </div>
       </Section>
@@ -147,7 +157,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       <Section title="Invoice details" defaultOpen={false}>
         <div className="grid gap-5 sm:grid-cols-3">
           <Field label="Invoice #">
-            <Input value={data.invoiceNumber} onChange={(e) => update("invoiceNumber", e.target.value)} />
+            <Input placeholder="INV-0001" value={data.invoiceNumber} onChange={(e) => update("invoiceNumber", e.target.value)} />
           </Field>
           <Field label="Status">
             <Select value={data.status} onValueChange={(v) => update("status", v as InvoiceStatus)}>
@@ -167,6 +177,9 @@ export function InvoiceForm({ data, onChange }: Props) {
               <SelectContent>
                 <SelectItem value="USD">USD ($)</SelectItem>
                 <SelectItem value="KHR">Riel (៛)</SelectItem>
+                <SelectItem value="CNY">Yuan (CN¥)</SelectItem>
+                <SelectItem value="JPY">Yen (¥)</SelectItem>
+                <SelectItem value="KRW">Won (₩)</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -241,13 +254,13 @@ export function InvoiceForm({ data, onChange }: Props) {
             <BankNameField value={data.bankName} onChange={(v) => update("bankName", v)} />
           </Field>
           <Field label="Account number">
-            <Input value={data.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
+            <Input placeholder="e.g. 000 123 456" value={data.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
           </Field>
           <Field label="Payment QR (optional)" className="sm:col-span-2">
             <ImageUpload value={data.qrCode} onClear={() => update("qrCode", null)} onUpload={(f) => handleImage("qrCode", f)} label="Upload QR code" />
           </Field>
           <Field label="Notes" className="sm:col-span-2">
-            <Textarea rows={3} value={data.notes} onChange={(e) => update("notes", e.target.value)} />
+            <Textarea rows={3} placeholder="Thank you for your business. Payment due within 14 days." value={data.notes} onChange={(e) => update("notes", e.target.value)} />
           </Field>
         </div>
       </Section>
@@ -270,7 +283,10 @@ export function InvoiceForm({ data, onChange }: Props) {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Loaded from Google Fonts and applied to the invoice preview.</p>
+            <p className="text-xs text-muted-foreground">
+              Loaded from Google Fonts and applied to the invoice preview. Auto-set to a popular
+              font for the chosen Language above — pick a different one here to override it.
+            </p>
           </Field>
         </div>
       </Section>
@@ -388,6 +404,26 @@ function Field({ label, children, className }: { label: string; children: React.
     <div className={`space-y-2 ${className ?? ""}`}>
       <Label className="eyebrow">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+// Placeholder for uploads that aren't available yet. If a value is already stored
+// (autosaved from an earlier session), keep showing it with a Remove button so the
+// user isn't stuck with an image they can no longer clear.
+function ComingSoonUpload({ value, onClear }: { value: string | null; onClear: () => void }) {
+  if (value) {
+    return (
+      <div className="flex items-center gap-3">
+        <img src={value} alt="" className="h-14 w-14 rounded-lg border border-border object-cover" />
+        <Button variant="outline" size="sm" onClick={onClear}>Remove</Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2 rounded-[6px] border border-dashed border-border bg-muted/40 text-sm text-muted-foreground opacity-60">
+      <Upload className="h-4 w-4" />
+      Coming soon
     </div>
   );
 }

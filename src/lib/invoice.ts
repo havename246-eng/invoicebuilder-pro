@@ -1,6 +1,6 @@
-export type Currency = "USD" | "KHR";
+export type Currency = "USD" | "KHR" | "CNY" | "JPY" | "KRW";
 export type InvoiceStatus = "draft" | "unpaid" | "partial" | "paid" | "void";
-export type InvoiceLanguage = "en" | "km";
+export type InvoiceLanguage = "en" | "km" | "zh" | "ja" | "ko";
 export type InvoiceTheme = "midnight" | "classic" | "minimal" | "emerald" | "sunset";
 export type PaperSize = "A4" | "Letter" | "A5" | "Legal";
 
@@ -16,8 +16,32 @@ export const GOOGLE_FONTS = [
   "Work Sans",
   "Open Sans",
   "Nunito",
+  // Popular script-specific fonts — also used to auto-select the Invoice font
+  // when the invoice language changes (see SCRIPT_FONTS below).
+  "Kantumruy Pro",
+  "Noto Sans SC",
+  "Noto Sans JP",
+  "Noto Sans KR",
 ] as const;
 export type GoogleFont = (typeof GOOGLE_FONTS)[number];
+
+// The most popular Google Font for each non-English invoice language — none of the
+// Latin GOOGLE_FONTS or the Rethink Sans brand font cover Khmer/CJK glyphs. Also used
+// to auto-select the "Invoice font" advanced setting when the language changes.
+export const SCRIPT_FONTS: Partial<Record<InvoiceLanguage, GoogleFont>> = {
+  km: "Kantumruy Pro",
+  zh: "Noto Sans SC",
+  ja: "Noto Sans JP",
+  ko: "Noto Sans KR",
+};
+
+export const invoiceFontFamily = (lang: InvoiceLanguage, customFont: GoogleFont | null) => {
+  const scriptFont = SCRIPT_FONTS[lang];
+  const stack = [customFont, "Rethink Sans", "Noto Sans", scriptFont, "system-ui", "sans-serif"].filter(
+    (f): f is string => !!f,
+  );
+  return [...new Set(stack)].map((f) => (f === "system-ui" || f === "sans-serif" ? f : `'${f}'`)).join(", ");
+};
 
 export interface LineItem {
   id: string;
@@ -61,11 +85,18 @@ export interface InvoiceData {
   invoiceFont: GoogleFont | null;
 }
 
+// Riel, yen, and won are zero-decimal currencies; CN¥ distinguishes yuan from yen.
+const CURRENCY_FORMATS: Record<Currency, { symbol: string; decimals: number }> = {
+  USD: { symbol: "$", decimals: 2 },
+  KHR: { symbol: "៛", decimals: 0 },
+  CNY: { symbol: "CN¥", decimals: 2 },
+  JPY: { symbol: "¥", decimals: 0 },
+  KRW: { symbol: "₩", decimals: 0 },
+};
+
 export const formatMoney = (amount: number, currency: Currency) => {
-  if (currency === "KHR") {
-    return `៛${Math.round(amount).toLocaleString("en-US")}`;
-  }
-  return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const { symbol, decimals } = CURRENCY_FORMATS[currency];
+  return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 };
 
 export const calcTotals = (items: LineItem[], taxRate: number) => {
@@ -76,27 +107,23 @@ export const calcTotals = (items: LineItem[], taxRate: number) => {
 };
 
 export const defaultInvoice = (): InvoiceData => ({
-  senderName: "Acme Studio",
-  senderEmail: "billing@acme.studio",
-  senderAddress: "123 Main St, Phnom Penh",
+  senderName: "",
+  senderEmail: "",
+  senderAddress: "",
   logo: null,
-  clientName: "Lotus Hotel",
-  clientEmail: "ap@lotushotel.com",
-  clientAddress: "45 Riverside, Siem Reap",
-  invoiceNumber: "INV-0042",
+  clientName: "",
+  clientEmail: "",
+  clientAddress: "",
+  invoiceNumber: "INV-0001",
   issueDate: new Date().toISOString().slice(0, 10),
   dueDate: "",
-  status: "unpaid",
-  items: [
-    { id: "1", description: "Brand identity design", quantity: 1, price: 1800 },
-    { id: "2", description: "Website redesign (5 pages)", quantity: 5, price: 420 },
-    { id: "3", description: "Photography retouching", quantity: 12, price: 35 },
-  ],
-  taxRate: 10,
-  notes: "Thank you for your business. Payment due within 14 days.",
+  status: "draft",
+  items: [{ id: "1", description: "", quantity: 1, price: 0 }],
+  taxRate: 0,
+  notes: "",
   currency: "USD",
-  bankName: "ABA Bank",
-  bankAccount: "000 123 456",
+  bankName: "",
+  bankAccount: "",
   qrCode: null,
   language: "en",
   theme: "classic",
@@ -152,6 +179,72 @@ export const I18N: Record<InvoiceLanguage, Record<string, string>> = {
     paid: "បង់រួច",
     void: "លុបចោល",
     thankYou: "សូមអរគុណចំពោះអាជីវកម្មរបស់អ្នក។",
+  },
+  zh: {
+    invoice: "发票",
+    billTo: "客户",
+    issued: "开票日期",
+    due: "到期日",
+    status: "状态",
+    description: "描述",
+    qty: "数量",
+    price: "单价",
+    total: "总计",
+    subtotal: "小计",
+    tax: "税费",
+    payment: "付款方式",
+    notes: "备注",
+    freeDelivery: "免费配送",
+    draft: "草稿",
+    unpaid: "未付款",
+    partial: "部分付款",
+    paid: "已付款",
+    void: "作废",
+    thankYou: "感谢您的惠顾。",
+  },
+  ja: {
+    invoice: "請求書",
+    billTo: "請求先",
+    issued: "発行日",
+    due: "支払期限",
+    status: "ステータス",
+    description: "内容",
+    qty: "数量",
+    price: "単価",
+    total: "合計",
+    subtotal: "小計",
+    tax: "税金",
+    payment: "お支払い",
+    notes: "備考",
+    freeDelivery: "送料無料",
+    draft: "下書き",
+    unpaid: "未払い",
+    partial: "一部支払い済み",
+    paid: "支払い済み",
+    void: "無効",
+    thankYou: "ご利用ありがとうございます。",
+  },
+  ko: {
+    invoice: "청구서",
+    billTo: "청구 대상",
+    issued: "발행일",
+    due: "마감일",
+    status: "상태",
+    description: "설명",
+    qty: "수량",
+    price: "단가",
+    total: "합계",
+    subtotal: "소계",
+    tax: "세금",
+    payment: "결제 정보",
+    notes: "비고",
+    freeDelivery: "무료 배송",
+    draft: "초안",
+    unpaid: "미결제",
+    partial: "부분 결제",
+    paid: "결제 완료",
+    void: "무효",
+    thankYou: "이용해 주셔서 감사합니다.",
   },
 };
 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&family=Rethink+Sans:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&family=Rethink+Sans:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -206,9 +206,11 @@
   }
 }
 
-/* Bilingual invoice typography — Rethink Sans (brand) falls back to Kantumruy Pro for Khmer glyphs it doesn't cover */
+/* Multilingual invoice typography — Rethink Sans (brand) falls back to the script-specific
+   font for the invoice's language (see SCRIPT_FONTS/invoiceFontFamily in lib/invoice.ts);
+   this static list is a defensive fallback if the class is ever used without that inline style. */
 .font-invoice {
-  font-family: 'Rethink Sans', 'Noto Sans', 'Kantumruy Pro', system-ui, sans-serif;
+  font-family: 'Rethink Sans', 'Noto Sans', 'Kantumruy Pro', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif;
   font-feature-settings: "liga", "kern";
 }
 .font-khmer {

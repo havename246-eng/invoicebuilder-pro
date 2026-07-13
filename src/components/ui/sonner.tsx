@@ -1,3 +1,4 @@
+import { CircleCheck } from "lucide-react";
 import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
@@ -6,6 +7,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
+      icons={{ success: <CircleCheck className="h-5 w-5 fill-green-500 stroke-white" /> }}
       toastOptions={{
         classNames: {
           toast:

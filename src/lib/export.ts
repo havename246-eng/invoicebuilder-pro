@@ -16,6 +16,50 @@ const safe = (s: string) =>
  */
 type OnProgress = (pct: number) => void;
 
+/**
+ * Build a compact @font-face CSS containing only the families used on the sheet,
+ * subset (via Google Fonts' `text=` param) to the exact characters it displays,
+ * with the font data inlined as data: URLs.
+ *
+ * Passing this to toPng via `fontEmbedCSS` stops html-to-image from walking the
+ * page's stylesheets itself — those now include hundreds of unicode-range-sliced
+ * CJK @font-face rules, and fetching them all exhausts the browser's connection
+ * pool (net::ERR_INSUFFICIENT_RESOURCES) and kills the export.
+ */
+async function buildFontEmbedCSS(sourceEl: HTMLElement): Promise<string> {
+  const families = getComputedStyle(sourceEl)
+    .fontFamily.split(",")
+    .map((f) => f.trim().replace(/^["']|["']$/g, ""))
+    .filter((f) => !["system-ui", "ui-sans-serif", "sans-serif", "serif", "monospace"].includes(f));
+  const chars = [...new Set(sourceEl.textContent ?? "")].filter((c) => c.trim()).slice(0, 800).join("");
+  if (!families.length || !chars) return "";
+
+  const familyParams = (weights: string) =>
+    families.map((f) => `family=${f.replace(/ /g, "+")}${weights}`).join("&");
+  const textParam = `&text=${encodeURIComponent(chars)}`;
+  // Some families don't ship every weight; if the weighted request is rejected,
+  // retry with regular-only (bold gets synthesized) rather than failing the export.
+  let res = await fetch(`https://fonts.googleapis.com/css2?${familyParams(":wght@400;500;600;700")}${textParam}`);
+  if (!res.ok) res = await fetch(`https://fonts.googleapis.com/css2?${familyParams("")}${textParam}`);
+  if (!res.ok) return "";
+  let css = await res.text();
+
+  const urls = [...new Set([...css.matchAll(/url\((https:\/\/[^)]+)\)/g)].map((m) => m[1]))];
+  await Promise.all(
+    urls.map(async (u) => {
+      const r = await fetch(u);
+      if (!r.ok) throw new Error(`Font download failed (${r.status})`);
+      const buf = new Uint8Array(await r.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 0x8000) {
+        bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      }
+      css = css.replaceAll(u, `data:font/woff2;base64,${btoa(bin)}`);
+    }),
+  );
+  return css;
+}
+
 async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize, onProgress?: OnProgress): Promise<string> {
   const widthPx = paperPxWidth(paperSize);
 
@@ -50,7 +94,16 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize, onProg
   if (document.fonts?.ready) {
     try { await document.fonts.ready; } catch { /* noop */ }
   }
-  onProgress?.(25);
+  onProgress?.(20);
+
+  // Empty string is a valid fallback: exports render with system fonts instead of failing.
+  let fontEmbedCSS = "";
+  try {
+    fontEmbedCSS = await buildFontEmbedCSS(sourceEl);
+  } catch {
+    /* noop */
+  }
+  onProgress?.(30);
 
   // Pre-warm: load every image src via fresh Image() so the browser cache has them decoded
   const sources = Array.from(sourceEl.querySelectorAll("img"))
@@ -106,8 +159,8 @@ async function renderDataUrl(sourceEl: HTMLElement, paperSize: PaperSize, onProg
       width: widthPx,
       height: clone.scrollHeight,
       style: { transform: "none", margin: "0" },
-      // Skip external stylesheet rules we can't read (CORS); inline styles still apply
-      skipFonts: false,
+      // Pre-built subset CSS — keeps html-to-image from fetching every @font-face on the page
+      fontEmbedCSS,
     });
     onProgress?.(85);
     return dataUrl;

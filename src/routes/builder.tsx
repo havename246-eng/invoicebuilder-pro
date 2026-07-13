@@ -126,7 +126,14 @@ function Builder() {
       await new Promise((r) => setTimeout(r, 1300));
     } catch (e) {
       console.error("[export]", e);
-      const msg = e instanceof Error ? e.message : "Unknown error";
+      const msg =
+        e instanceof Error
+          ? e.message
+          : e instanceof Event
+            ? `A resource failed to load (${e.type})`
+            : typeof e === "string"
+              ? e
+              : "Unknown error";
       const hint = /image|cors|tainted/i.test(msg)
         ? "An uploaded image may be blocking the export. Try re-uploading the logo or QR code."
         : "Please try again. If it keeps failing, refresh the page.";
@@ -143,7 +150,7 @@ function Builder() {
     <div className="min-h-screen bg-background">
       <SiteHeader variant="light" />
 
-      <div className="container mx-auto max-w-[1500px] px-4 py-6 pb-36 sm:px-6 sm:py-8">
+      <div className="container mx-auto max-w-[1500px] px-4 py-6 pb-48 sm:px-6 sm:py-8 sm:pb-56">
         {/* Toolbar */}
         <div className="mb-6">
           <h1 className="text-[22px] sm:text-[28px]">Invoice Builder</h1>

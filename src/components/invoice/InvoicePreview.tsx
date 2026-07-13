@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import footerBanner from "@/assets/footer-invoice.svg";
 import {
   calcTotals,
   formatMoney,
+  invoiceFontFamily,
   paperPxHeight,
   paperPxWidth,
   STATUS_STYLES,
@@ -73,9 +75,8 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             boxSizing: "border-box",
             transform: `scale(${scale})`,
             transformOrigin: "top left",
-            fontFamily: data.invoiceFont
-              ? `'${data.invoiceFont}', 'Kantumruy Pro', sans-serif`
-              : undefined,
+            fontFamily: invoiceFontFamily(lang, data.invoiceFont),
+            position: "relative",
           }}
         >
         {/* Custom header banner */}
@@ -311,6 +312,13 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
             style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginTop: "24px", borderRadius: "8px" }}
           />
         )}
+
+        {/* Brand footer strip — pinned to the bottom edge of the sheet */}
+        <img
+          src={footerBanner}
+          alt=""
+          style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "auto", display: "block" }}
+        />
         </div>
       </div>
     </div>

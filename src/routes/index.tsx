@@ -258,7 +258,7 @@ function Landing() {
                 <Button
                   asChild
                   size="lg"
-                  className="rounded-full bg-accent-lime px-8 text-blue-950 hover:bg-accent-lime/90"
+                  className="h-12 rounded-full bg-accent-lime px-9 text-base text-blue-950 hover:bg-accent-lime/90"
                 >
                   <Link to="/builder">Create your invoice for Free</Link>
                 </Button>
@@ -266,7 +266,7 @@ function Landing() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="rounded-full border-ink-border/40 bg-transparent px-8 text-white hover:bg-white/10"
+                  className="h-12 rounded-full border-ink-border/40 bg-transparent px-9 text-base text-white hover:bg-white/10"
                 >
                   <a href="#features">Explore features</a>
                 </Button>
