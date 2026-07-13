@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
-import { defaultInvoice } from "@/lib/invoice";
+import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import footerOverlayPattern from "@/assets/footer-overlay-pattern.svg";
@@ -154,7 +154,68 @@ function BuyMeACoffee() {
 }
 
 function Landing() {
-  const sample = defaultInvoice();
+  const sample: InvoiceData = {
+    ...defaultInvoice(),
+    senderName: "Acme Studio",
+    senderEmail: "billing@acme.studio",
+    senderAddress: "123 Main St, Phnom Penh",
+    clientName: "Lotus Hotel",
+    clientEmail: "ap@lotushotel.com",
+    clientAddress: "45 Riverside, Siem Reap",
+    invoiceNumber: "INV-0042",
+    status: "paid",
+    items: [
+      { id: "1", description: "Brand identity design", quantity: 1, price: 1800 },
+      { id: "2", description: "Website redesign (5 pages)", quantity: 5, price: 420 },
+      { id: "3", description: "Photography retouching", quantity: 12, price: 35 },
+    ],
+    taxRate: 10,
+    notes: "Thank you for your business. Payment due within 14 days.",
+    bankName: "ABA Bank",
+    bankAccount: "000 123 456",
+  };
+  const sampleMidnight: InvoiceData = {
+    ...defaultInvoice(),
+    theme: "midnight",
+    senderName: "Mekong Digital",
+    senderEmail: "hello@mekongdigital.co",
+    senderAddress: "Street 240, Phnom Penh",
+    clientName: "Angkor Coffee Co.",
+    clientEmail: "finance@angkorcoffee.com",
+    clientAddress: "Old Market, Siem Reap",
+    invoiceNumber: "INV-0117",
+    status: "unpaid",
+    items: [
+      { id: "1", description: "Social media campaign", quantity: 1, price: 950 },
+      { id: "2", description: "Product photography", quantity: 8, price: 60 },
+      { id: "3", description: "Monthly SEO retainer", quantity: 3, price: 300 },
+    ],
+    taxRate: 10,
+    notes: "Payment due within 30 days.",
+    bankName: "ACLEDA Bank",
+    bankAccount: "111 222 333",
+  };
+  const sampleEmerald: InvoiceData = {
+    ...defaultInvoice(),
+    theme: "emerald",
+    senderName: "Green Garden Cafe",
+    senderEmail: "orders@greengarden.kh",
+    senderAddress: "Wat Bo Road, Siem Reap",
+    clientName: "Sunrise Bakery",
+    clientEmail: "acc@sunrisebakery.com",
+    clientAddress: "Kandal Market, Phnom Penh",
+    invoiceNumber: "INV-0203",
+    status: "partial",
+    items: [
+      { id: "1", description: "Catering — staff party", quantity: 1, price: 640 },
+      { id: "2", description: "Cold brew (case of 24)", quantity: 4, price: 55 },
+      { id: "3", description: "Pastry platter", quantity: 6, price: 28 },
+    ],
+    taxRate: 10,
+    notes: "50% deposit received — balance due on delivery.",
+    bankName: "Wing Bank",
+    bankAccount: "555 666 777",
+  };
   const rotatingWordRef = useRef<HTMLSpanElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -242,7 +303,9 @@ function Landing() {
       <SiteHeader />
       <main ref={mainRef}>
         {/* Hero */}
-        <section className="bg-ink-canvas" aria-label="Hero">
+        {/* overflow-x-clip lets the fanned invoice mockups spill toward the viewport edge
+            without horizontal scrollbars (clip, unlike hidden, creates no scroll container) */}
+        <section className="overflow-x-clip bg-ink-canvas" aria-label="Hero">
           <div className="reveal-group container mx-auto max-w-7xl px-4 sm:px-6 pt-20 pb-16 md:pt-28 md:pb-20">
             <div className="flex flex-col items-center text-center">
               <h1 className="reveal-item text-[34px] font-bold leading-[1.15] text-white max-w-2xl md:max-w-6xl md:text-[52px]">
@@ -273,11 +336,22 @@ function Landing() {
               </div>
             </div>
 
-            {/* Floating product mockup */}
-            <div className="reveal-item relative mx-auto mt-14 max-w-3xl overflow-x-hidden">
-              <div className="rounded-3xl bg-ink-canvas-elevated p-6 md:p-10">
-                <div className="mx-auto max-w-sm rounded-2xl bg-white p-3 sm:-rotate-2">
-                  <InvoicePreview data={sample} />
+            {/* Floating product mockups — symmetric card fan that opens wider on hover */}
+            <div className="reveal-item relative mx-auto mt-14 max-w-4xl">
+              <div className="px-6 pb-16 pt-2 sm:pb-24">
+                <div className="group relative mx-auto aspect-[7/10] w-4/5 max-w-sm sm:w-full">
+                  {/* Left — midnight */}
+                  <div className="absolute inset-x-0 top-0 origin-bottom -translate-x-6 -rotate-6 overflow-hidden rounded-lg shadow-xl transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:-translate-x-14 sm:rotate-[-8deg] sm:group-hover:-translate-x-28 sm:group-hover:rotate-[-14deg]">
+                    <InvoicePreview data={sampleMidnight} />
+                  </div>
+                  {/* Right — lime */}
+                  <div className="absolute inset-x-0 top-0 origin-bottom translate-x-6 rotate-6 overflow-hidden rounded-lg shadow-xl transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:translate-x-14 sm:rotate-[8deg] sm:group-hover:translate-x-28 sm:group-hover:rotate-[14deg]">
+                    <InvoicePreview data={sampleEmerald} />
+                  </div>
+                  {/* Front — classic */}
+                  <div className="absolute inset-x-0 top-0 overflow-hidden rounded-lg shadow-xl transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:group-hover:-translate-y-2">
+                    <InvoicePreview data={sample} />
+                  </div>
                 </div>
               </div>
             </div>
