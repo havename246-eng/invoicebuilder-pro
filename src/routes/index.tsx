@@ -213,6 +213,7 @@ function Landing() {
   };
   const rotatingWordRef = useRef<HTMLSpanElement>(null);
   const mainRef = useRef<HTMLElement>(null);
+  const featuresTrackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = rotatingWordRef.current;
@@ -291,6 +292,57 @@ function Landing() {
     });
 
     return () => io.disconnect();
+  }, []);
+
+  // Features scroll carousel — the track is one viewport-height per feature while
+  // the panel area is position:sticky, so scrolling scrubs a crossfade that shows
+  // one feature at a time. Progress comes from getBoundingClientRect on each frame
+  // for the same reason the reveal effect above uses IntersectionObserver instead
+  // of ScrollTrigger: nothing is pre-computed, so late layout shifts can't break it.
+  useEffect(() => {
+    const track = featuresTrackRef.current;
+    if (!track) return;
+    const panels = Array.from(track.querySelectorAll<HTMLElement>("[data-feature-panel]"));
+    const dots = Array.from(track.querySelectorAll<HTMLElement>("[data-feature-dot]"));
+    if (panels.length < 2) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const steps = panels.length - 1;
+    let raf = 0;
+
+    const render = () => {
+      raf = 0;
+      const rect = track.getBoundingClientRect();
+      const scrollable = rect.height - window.innerHeight;
+      const progress = Math.min(1, Math.max(0, -rect.top / scrollable)) * steps;
+      const active = Math.round(progress);
+      panels.forEach((panel, i) => {
+        const d = Math.abs(progress - i);
+        // Fully visible within ±0.3 of the step, fading out over the next 0.2 —
+        // gone right at the midpoint, so adjacent panels never overlap mid-fade.
+        const hidden = Math.min(1, Math.max(0, (d - 0.3) / 0.2));
+        panel.style.opacity = String(1 - hidden);
+        panel.style.visibility = hidden === 1 ? "hidden" : "visible";
+        panel.style.pointerEvents = i === active ? "auto" : "none";
+        if (!reduced) {
+          panel.style.transform = `translateY(${hidden * 46 * (progress > i ? -1 : 1)}px)`;
+        }
+      });
+      dots.forEach((dot, i) => {
+        dot.style.opacity = i === active ? "1" : "0.25";
+      });
+    };
+
+    const queue = () => {
+      if (!raf) raf = requestAnimationFrame(render);
+    };
+    render();
+    window.addEventListener("scroll", queue, { passive: true });
+    window.addEventListener("resize", queue);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", queue);
+      window.removeEventListener("resize", queue);
+    };
   }, []);
 
   return (
@@ -375,8 +427,9 @@ function Landing() {
           </div>
         </section>
 
-        {/* Features */}
-        <section id="features" className="bg-surface py-20 md:py-24" aria-label="Features">
+        {/* Features — scroll-driven carousel: the sticky viewport stays pinned while
+            the tall track scrolls, revealing one feature at a time */}
+        <section id="features" className="bg-surface pt-20 md:pt-24" aria-label="Features">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6">
             <div className="reveal-row mx-auto max-w-[600px] text-center">
               <p className="eyebrow">Everything you need</p>
@@ -388,40 +441,56 @@ function Landing() {
                 designed for fast, professional billing — no design or accounting skills required.
               </p>
             </div>
+          </div>
 
-            <div className="mt-16 flex flex-col gap-16 md:mt-20 md:gap-24">
-              {features.map((f, i) => (
-                <div
-                  key={f.eyebrow}
-                  className={cn(
-                    "reveal-row flex flex-col items-center gap-10 md:gap-16",
-                    i % 2 === 1 ? "md:flex-row-reverse" : "md:flex-row",
-                  )}
-                >
-                  <div className="flex-1">
-                    <p className="eyebrow">{f.eyebrow}</p>
-                    <h3 className="mt-3 text-[24px] font-bold leading-snug text-foreground md:text-[28px]">
-                      {f.heading}
-                    </h3>
-                    <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{f.desc}</p>
-                    <Button
-                      asChild
-                      size="lg"
-                      className="mt-6 rounded-full bg-blue-900 px-6 text-white hover:bg-blue-900/90"
-                    >
-                      <Link to="/builder">{f.cta}</Link>
-                    </Button>
+          <div ref={featuresTrackRef} style={{ height: `${features.length * 100}vh` }}>
+            <div className="sticky top-0 h-screen overflow-hidden">
+              <div className="container relative mx-auto h-full max-w-7xl">
+                {features.map((f, i) => (
+                  <div
+                    key={f.eyebrow}
+                    data-feature-panel
+                    className={cn(
+                      "absolute inset-0 flex flex-col items-center justify-center gap-6 px-4 pb-10 pt-20 sm:px-6 md:gap-16 md:py-0",
+                      i % 2 === 1 ? "md:flex-row-reverse" : "md:flex-row",
+                      i > 0 && "opacity-0",
+                    )}
+                  >
+                    <div className="flex-1">
+                      <p className="eyebrow">{f.eyebrow}</p>
+                      <h3 className="mt-3 text-[24px] font-bold leading-snug text-foreground md:text-[28px]">
+                        {f.heading}
+                      </h3>
+                      <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{f.desc}</p>
+                      <Button
+                        asChild
+                        size="lg"
+                        className="mt-6 rounded-full bg-blue-900 px-6 text-white hover:bg-blue-900/90"
+                      >
+                        <Link to="/builder">{f.cta}</Link>
+                      </Button>
+                    </div>
+                    <div className="w-full flex-1">
+                      <img
+                        src={f.banner}
+                        alt={`${f.eyebrow} illustration`}
+                        className="mx-auto max-h-[32vh] w-full max-w-[500px] object-contain md:max-h-[44vh]"
+                        loading="lazy"
+                      />
+                    </div>
                   </div>
-                  <div className="w-full flex-1">
-                    <img
-                      src={f.banner}
-                      alt={`${f.eyebrow} illustration`}
-                      className="mx-auto w-full max-w-[500px]"
-                      loading="lazy"
+                ))}
+                <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2.5 md:bottom-10">
+                  {features.map((f, i) => (
+                    <span
+                      key={f.eyebrow}
+                      data-feature-dot
+                      className="h-2 w-2 rounded-full bg-blue-900"
+                      style={{ opacity: i === 0 ? 1 : 0.25 }}
                     />
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
