@@ -116,10 +116,10 @@ function Builder() {
     const tId = toast.loading(kind === "png" ? "Generating PNG…" : "Generating PDF…");
     try {
       if (kind === "png") {
-        await exportPNG(el, data.invoiceNumber, data.clientName, data.paperSize, setExportProgress);
+        await exportPNG(el, data, setExportProgress);
         toast.success("PNG downloaded", { id: tId });
       } else {
-        await exportPDF(el, data.invoiceNumber, data.clientName, data.paperSize, setExportProgress);
+        await exportPDF(el, data, setExportProgress);
         toast.success("PDF downloaded", { id: tId });
       }
       setExportDone(true);
