@@ -9,12 +9,12 @@ import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import footerOverlayPattern from "@/assets/footer-overlay-pattern.svg";
-import bannerTranslation from "@/assets/banners/ai-translation.svg";
-import bannerBranding from "@/assets/banners/custom-branding.svg";
-import bannerCurrency from "@/assets/banners/multi-currency.svg";
-import bannerSmartFields from "@/assets/banners/smart-fields.svg";
-import bannerPaymentQr from "@/assets/banners/payment-qr.svg";
-import bannerExport from "@/assets/banners/export.svg";
+import bannerTranslation from "@/assets/banners/ai-translation.png";
+import bannerBranding from "@/assets/banners/custom-branding.png";
+import bannerCurrency from "@/assets/banners/multi-currency.png";
+import bannerSmartFields from "@/assets/banners/smart-fields.png";
+import bannerPaymentQr from "@/assets/banners/payment-qr.png";
+import bannerExport from "@/assets/banners/export.png";
 
 const SITE_URL = "https://craft-bill-ai.lovable.app";
 
