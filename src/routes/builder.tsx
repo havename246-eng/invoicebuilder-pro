@@ -9,7 +9,7 @@ import { SiteHeader } from "@/components/site/Header";
 import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
-import { exportPDF, exportPNG } from "@/lib/export";
+import { exportPDF, exportPNG, hapticBuzz } from "@/lib/export";
 
 const BUILDER_URL = "https://craft-bill-ai.lovable.app/builder";
 
@@ -110,6 +110,7 @@ function Builder() {
       toast.error("Preview not ready", { description: "Please wait a moment and try again." });
       return;
     }
+    hapticBuzz();
     setExporting(kind);
     setExportProgress(0);
     setExportDone(false);

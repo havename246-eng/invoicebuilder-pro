@@ -1,5 +1,6 @@
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
+import footerBanner from "@/assets/footer-invoice.svg";
 import {
   PAPER_DIMENSIONS,
   paperPxWidth,
@@ -7,6 +8,9 @@ import {
   type InvoiceData,
   type PaperSize,
 } from "./invoice";
+
+// Height/width of assets/footer-invoice.svg's viewBox.
+const BRAND_FOOTER_ASPECT = 10.49 / 269.94;
 
 const safe = (s: string) =>
   (s || "invoice")
@@ -27,21 +31,40 @@ const isTouchDevice = () =>
   typeof window !== "undefined" &&
   (window.matchMedia?.("(pointer: coarse)").matches || navigator.maxTouchPoints > 0);
 
-// Every iOS browser (Safari, CriOS, FxiOS…) runs WebKit; iPadOS reports "Macintosh"
-// but has multi-touch. Desktop Safari shares the same rendering engine quirk.
-const isWebKitEngine = () => {
-  const ua = navigator.userAgent;
-  const iOS = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  const safari = /AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|Android/.test(ua);
-  return iOS || safari;
-};
+// iPadOS reports "Macintosh" in its UA but, unlike a Mac, exposes multi-touch.
+const isIOS = () =>
+  /iP(hone|ad|od)/.test(navigator.userAgent) ||
+  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
-// Short buzz when the download hands off to the browser. navigator.vibrate is a
-// no-op where unsupported (iOS), so this degrades silently.
-const hapticBuzz = () => {
+// Every iOS browser (Safari, CriOS, FxiOS…) runs WebKit; desktop Safari shares
+// the same rendering engine quirks.
+const isWebKitEngine = () =>
+  isIOS() ||
+  (/AppleWebKit/.test(navigator.userAgent) &&
+    !/Chrome|Chromium|Edg|Android/.test(navigator.userAgent));
+
+// Short buzz when the download hands off to the browser. Android exposes
+// navigator.vibrate; iOS has no vibration API, but toggling a switch-style
+// checkbox fires the system haptic tick (Safari 17.4+), so use that there.
+// iOS gates the tick behind user activation, hence also called on button tap.
+export const hapticBuzz = () => {
   if (!isTouchDevice()) return;
   try {
-    navigator.vibrate?.(35);
+    if (typeof navigator.vibrate === "function") {
+      navigator.vibrate(35);
+      return;
+    }
+    const label = document.createElement("label");
+    label.ariaHidden = "true";
+    label.style.cssText =
+      "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.setAttribute("switch", "");
+    label.appendChild(input);
+    document.body.appendChild(label);
+    label.click();
+    label.remove();
   } catch {
     /* noop */
   }
@@ -102,6 +125,7 @@ async function renderDataUrl(
   paperSize: PaperSize,
   bg: string,
   onProgress?: OnProgress,
+  opts?: { omitBrandFooter?: boolean },
 ): Promise<string> {
   const widthPx = paperPxWidth(paperSize);
 
@@ -130,6 +154,15 @@ async function renderDataUrl(
   clone.style.maxWidth = "none";
   clone.style.boxShadow = "none";
   clone.style.margin = "0";
+
+  // For PDFs the brand strip is stamped onto the bottom of every page instead
+  // of living inside the sheet image, so drop it from the capture. The sheet
+  // keeps its full preview height; the strip zone it vacates stays empty
+  // (content never reaches into the sheet's bottom padding), and exportPDF
+  // crops that band off the last page.
+  if (opts?.omitBrandFooter) {
+    clone.querySelector("[data-brand-footer]")?.remove();
+  }
 
   sandbox.appendChild(clone);
   document.body.appendChild(sandbox);
@@ -246,6 +279,27 @@ async function renderDataUrl(
   }
 }
 
+/**
+ * Rasterize the brand footer SVG to a PNG data URL at 2× the sheet width so
+ * jsPDF (which can't draw SVGs) can stamp it onto every page.
+ */
+async function rasterizeBrandFooter(sheetPxWidth: number): Promise<string | null> {
+  try {
+    const img = new Image();
+    img.src = footerBanner;
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = sheetPxWidth * 2;
+    canvas.height = Math.round(sheetPxWidth * 2 * BRAND_FOOTER_ASPECT);
+    const g = canvas.getContext("2d");
+    if (!g) return null;
+    g.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 function dataUrlToBlob(dataUrl: string): Blob {
   const [meta, b64] = dataUrl.split(",");
   const mime = /data:([^;,]+)/.exec(meta)?.[1] ?? "application/octet-stream";
@@ -261,7 +315,15 @@ function dataUrlToBlob(dataUrl: string): Blob {
  * navigating to the image. Buzz once the download is handed to the browser.
  */
 function triggerDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
+  // iOS Safari opens blob types it can display natively (PDFs above all) in a
+  // preview page instead of honouring the download attribute. An opaque MIME
+  // type has no viewer, so Safari downloads it straight to Files; the .pdf
+  // extension in the filename keeps the saved file fully usable.
+  const payload =
+    isIOS() && blob.type === "application/pdf"
+      ? new Blob([blob], { type: "application/octet-stream" })
+      : blob;
+  const url = URL.createObjectURL(payload);
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
@@ -288,7 +350,12 @@ export async function exportPNG(el: HTMLElement, data: InvoiceData, onProgress?:
 export async function exportPDF(el: HTMLElement, data: InvoiceData, onProgress?: OnProgress) {
   const bg = THEMES[data.theme].bg;
   const paperSize = data.paperSize;
-  const dataUrl = await renderDataUrl(el, paperSize, bg, onProgress);
+  // If the strip can't be rasterized, fall back to leaving it inside the sheet
+  // image rather than exporting an unbranded PDF.
+  const footerPng = await rasterizeBrandFooter(paperPxWidth(paperSize));
+  const dataUrl = await renderDataUrl(el, paperSize, bg, onProgress, {
+    omitBrandFooter: !!footerPng,
+  });
   const { w, h } = PAPER_DIMENSIONS[paperSize];
 
   const pdf = new jsPDF({
@@ -314,10 +381,16 @@ export async function exportPDF(el: HTMLElement, data: InvoiceData, onProgress?:
   const imgW = pageW;
   const imgH = imgW * (img.height / img.width);
 
-  // Rounding paper mm → CSS px makes the render a fraction of a mm taller than
-  // the page on some sizes (A4 ≈ +0.02mm); without this tolerance that sliver
-  // used to add a blank trailing page.
-  const pageCount = Math.max(1, Math.ceil((imgH - 1) / pageH));
+  // The brand strip is stamped at the bottom of every page; content flows in
+  // the band above it, continuing on the next page from where the strip cut in.
+  const footerH = footerPng ? pageW * BRAND_FOOTER_ASPECT : 0;
+  const usableH = pageH - footerH;
+
+  // The sheet's trailing strip zone (vacated by the removed in-sheet strip,
+  // empty by construction) plus mm→px rounding slack may be cropped off the
+  // last page without losing content — otherwise a sheet that exactly fills
+  // the preview page would always spill onto a nearly blank extra page.
+  const pageCount = Math.max(1, Math.ceil((imgH - footerH - 1) / usableH));
   for (let page = 0; page < pageCount; page++) {
     if (page > 0) pdf.addPage();
     // Paint the paper in the theme colour so dark themes don't show white
@@ -326,7 +399,10 @@ export async function exportPDF(el: HTMLElement, data: InvoiceData, onProgress?:
     pdf.rect(0, 0, pageW, pageH, "F");
     // jsPDF re-encodes the PNG's pixels into the PDF and defaults to no
     // compression, which balloons a one-page invoice to ~10MB.
-    pdf.addImage(dataUrl, "PNG", 0, -page * pageH, imgW, imgH, undefined, "FAST");
+    pdf.addImage(dataUrl, "PNG", 0, -page * usableH, imgW, imgH, undefined, "FAST");
+    if (footerPng) {
+      pdf.addImage(footerPng, "PNG", 0, pageH - footerH, pageW, footerH, undefined, "FAST");
+    }
   }
   onProgress?.(98);
 
