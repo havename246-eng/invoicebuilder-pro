@@ -416,7 +416,7 @@ function Landing() {
                     <img
                       src={f.banner}
                       alt={`${f.eyebrow} illustration`}
-                      className="w-full"
+                      className="mx-auto w-full max-w-[500px]"
                       loading="lazy"
                     />
                   </div>
