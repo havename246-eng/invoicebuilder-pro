@@ -1,18 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
-import {
-  FileDown,
-  FileText,
-  QrCode,
-  Store,
-  Zap,
-  Wallet,
-  Languages,
-  Palette,
-  Coins,
-  Sparkles,
-} from "lucide-react";
+import { FileText, Store, Zap, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
@@ -20,6 +9,12 @@ import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import footerOverlayPattern from "@/assets/footer-overlay-pattern.svg";
+import bannerTranslation from "@/assets/banners/ai-translation.svg";
+import bannerBranding from "@/assets/banners/custom-branding.svg";
+import bannerCurrency from "@/assets/banners/multi-currency.svg";
+import bannerSmartFields from "@/assets/banners/smart-fields.svg";
+import bannerPaymentQr from "@/assets/banners/payment-qr.svg";
+import bannerExport from "@/assets/banners/export.svg";
 
 const SITE_URL = "https://craft-bill-ai.lovable.app";
 
@@ -85,42 +80,42 @@ const saveTime = [
 
 const features = [
   {
-    icon: Languages,
+    banner: bannerTranslation,
     eyebrow: "AI Translation",
     heading: "Every invoice, translated instantly",
     desc: "Flip any invoice into 100+ languages with one click — no manual retyping, no delays. Every translation keeps your formatting intact.",
     cta: "Explore AI translation",
   },
   {
-    icon: Palette,
+    banner: bannerBranding,
     eyebrow: "Custom Branding",
     heading: "Every invoice, unmistakably yours",
     desc: "Upload your logo once and every invoice matches your identity — consistent, professional, and instantly recognizable to your clients.",
     cta: "Explore branding",
   },
   {
-    icon: Coins,
+    banner: bannerCurrency,
     eyebrow: "Multi-Currency",
     heading: "Built for real numbers, not just US dollars",
     desc: "Native USD and Cambodian Riel (៛) formatting with correct symbol placement and decimal handling, built for how local businesses actually invoice.",
     cta: "Explore currencies",
   },
   {
-    icon: Sparkles,
+    banner: bannerSmartFields,
     eyebrow: "Smart Fields",
     heading: "Less typing, fewer mistakes",
     desc: "Optional fields auto-hide when empty, and totals, tax, and line-item math calculate live as you type — nothing to double-check by hand.",
     cta: "Explore smart fields",
   },
   {
-    icon: QrCode,
+    banner: bannerPaymentQr,
     eyebrow: "Payment QR",
     heading: "From sent to paid, without the back-and-forth",
     desc: "Embed a scannable payment QR code so clients can pay instantly from their banking app — no manual transfers, no chasing payments.",
     cta: "Explore payment QR",
   },
   {
-    icon: FileDown,
+    banner: bannerExport,
     eyebrow: "Export",
     heading: "Client-ready files in one click",
     desc: "Export print-ready PDF or PNG files optimized for email, messaging apps, or printing — pixel-perfect every time.",
@@ -418,16 +413,12 @@ function Landing() {
                     </Button>
                   </div>
                   <div className="w-full flex-1">
-                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500 to-blue-900 p-6 sm:p-8">
-                      <div className="flex h-full w-full items-center justify-center rounded-2xl bg-white/95 p-6 shadow-xl">
-                        <div className="flex flex-col items-center gap-3 text-center">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-                            <f.icon className="h-7 w-7 text-blue-900" aria-hidden="true" />
-                          </div>
-                          <p className="text-sm font-semibold text-foreground">{f.eyebrow}</p>
-                        </div>
-                      </div>
-                    </div>
+                    <img
+                      src={f.banner}
+                      alt={`${f.eyebrow} illustration`}
+                      className="w-full"
+                      loading="lazy"
+                    />
                   </div>
                 </div>
               ))}
