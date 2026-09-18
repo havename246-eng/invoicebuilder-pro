@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="InvoiceCraft">
+  <rect width="512" height="512" rx="112" fill="#1F4189" />
+  <g transform="translate(115 84) scale(4.3445)">
+    <polygon
+      fill="#1F5BDB"
+      points="50.62 0 0 0 0 79.18 13.55 79.18 13.73 79.18 13.73 49.86 43.04 79.18 45.25 79.18 64.9 79.18 64.9 14.28 50.62 0"
+    />
+    <polygon fill="#E5DB1C" points="61.87 22.78 43.15 4.06 43.15 22.78 61.87 22.78" />
+  </g>
+</svg>

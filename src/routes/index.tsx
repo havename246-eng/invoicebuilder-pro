@@ -4,6 +4,7 @@ import gsap from "gsap";
 import { FileText, Store, Zap, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
+import { PricingSection } from "@/components/site/Pricing";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { cn } from "@/lib/utils";
@@ -434,7 +435,7 @@ function Landing() {
               className="reveal-group mx-auto flex min-h-[6rem] max-w-3xl flex-col items-center gap-3 text-center font-bold text-foreground md:min-h-[7rem]"
               aria-hidden="true"
             >
-              <span className="text-[28px] md:text-[36px]">We Build with passion for</span>
+              <span className="text-[28px] md:text-[36px]">We Build with Passion for</span>
               <span
                 ref={rotatingWordRef}
                 className="inline-block whitespace-nowrap rounded-full bg-accent-lime px-6 py-2 text-[clamp(1rem,4vw,1.5rem)] text-blue-950"
@@ -442,6 +443,9 @@ function Landing() {
             </div>
           </div>
         </section>
+
+        {/* Pricing */}
+        <PricingSection />
 
         {/* CTA */}
         <section className="bg-ink-canvas py-12 md:py-16">
@@ -488,6 +492,9 @@ function Landing() {
                 </Link>
                 <a href="#features" className="text-ink-subtext transition-smooth hover:text-white">
                   Features
+                </a>
+                <a href="#pricing" className="text-ink-subtext transition-smooth hover:text-white">
+                  Pricing
                 </a>
               </nav>
             </div>

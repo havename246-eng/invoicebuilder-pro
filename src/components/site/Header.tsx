@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/auth/UserMenu";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import logoDark from "@/assets/Logo.svg";
@@ -13,6 +14,7 @@ if (typeof window !== "undefined") {
 }
 
 export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" }) {
+  const { user } = useRouteContext({ from: "__root__" });
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -157,8 +159,45 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
             >
               Features
             </a>
+            <a
+              href="#pricing"
+              className={cn(
+                "text-sm transition-smooth",
+                !isDark || scrolled
+                  ? "text-muted-foreground hover:text-foreground"
+                  : "text-white/60 hover:text-white",
+              )}
+            >
+              Pricing
+            </a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-5">
+            {!user && (
+              <>
+                <Link
+                  to="/login"
+                  className={cn(
+                    "hidden text-sm transition-smooth sm:inline-flex",
+                    !isDark || scrolled
+                      ? "text-muted-foreground hover:text-foreground"
+                      : "text-white/60 hover:text-white",
+                  )}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/signup"
+                  className={cn(
+                    "hidden text-sm transition-smooth sm:inline-flex",
+                    !isDark || scrolled
+                      ? "text-muted-foreground hover:text-foreground"
+                      : "text-white/60 hover:text-white",
+                  )}
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
             <Button
               asChild
               size="lg"
@@ -171,6 +210,7 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
             >
               <Link to="/builder">Create invoice</Link>
             </Button>
+            {user && <UserMenu user={user} dark={isDark && !scrolled} />}
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
@@ -216,6 +256,51 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
               >
                 Features
               </a>
+              <a
+                href="#pricing"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+              >
+                Pricing
+              </a>
+
+              <div className="my-1 h-px bg-border" />
+
+              {user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/account"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+                  >
+                    Account settings
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-primary transition-smooth hover:bg-muted"
+                  >
+                    Create account
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         )}

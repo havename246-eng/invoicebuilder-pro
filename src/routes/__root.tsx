@@ -1,5 +1,15 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useEffect } from "react";
+import {
+  Outlet,
+  Link,
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+  useRouter,
+} from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { fetchUser, type AuthUser } from "@/lib/auth";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 import appCss from "../styles.css?url";
 
@@ -26,9 +36,16 @@ function NotFoundComponent() {
 }
 
 const SITE_URL = "https://craft-bill-ai.lovable.app";
-const OG_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/13fcf9db-8c82-4bb5-8e10-c2d3451b5e21";
+const OG_IMAGE = `${SITE_URL}/og-image.png`;
 
-export const Route = createRootRoute({
+export type RouterContext = {
+  user: AuthUser | null;
+};
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  // Resolved once per navigation and handed down to every route, so guards and
+  // the header read the same server-verified user.
+  beforeLoad: async () => ({ user: await fetchUser() }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -53,7 +70,11 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "canonical", href: SITE_URL },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      // .ico first for the browsers that only read that one; the SVG wins
+      // wherever it's understood, so the tab icon stays sharp at any density.
+      { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
+      { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -76,6 +97,25 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const router = useRouter();
+
+  // Keeps this tab in step when the session changes elsewhere — a sign-out in
+  // another tab, or a token refresh — by re-running beforeLoad.
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        router.invalidate();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
   return (
     <>
       <Outlet />

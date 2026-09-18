@@ -57,7 +57,8 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
 export const getRouter = () => {
   const router = createRouter({
     routeTree,
-    context: {},
+    // Placeholder until the root route's beforeLoad resolves the real user.
+    context: { user: null },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: DefaultErrorComponent,
