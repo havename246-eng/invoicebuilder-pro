@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { fetchUser, type AuthUser } from "@/lib/auth";
+import { trackOAuthReturnFromHash } from "@/lib/analytics";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 import appCss from "../styles.css?url";
@@ -37,6 +38,7 @@ function NotFoundComponent() {
 
 const SITE_URL = "https://craft-bill-ai.lovable.app";
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
+const GA_MEASUREMENT_ID = "G-DC6G1487CL";
 
 export type RouterContext = {
   user: AuthUser | null;
@@ -76,6 +78,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
+    // Rendered into <head> by <HeadContent /> below. The inline snippet defines
+    // window.gtag synchronously, so events queue into dataLayer even before the
+    // async library finishes loading.
+    scripts: [
+      { src: `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`, async: true },
+      {
+        children: [
+          "window.dataLayer = window.dataLayer || [];",
+          "function gtag(){dataLayer.push(arguments);}",
+          "gtag('js', new Date());",
+          `gtag('config', '${GA_MEASUREMENT_ID}');`,
+        ].join("\n"),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -98,6 +114,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const router = useRouter();
+
+  // Google sign-in lands here from a server-side redirect carrying its analytics
+  // marker in the URL fragment — see trackOAuthReturnFromHash for why.
+  useEffect(() => {
+    trackOAuthReturnFromHash();
+  }, []);
 
   // Keeps this tab in step when the session changes elsewhere — a sign-out in
   // another tab, or a token refresh — by re-running beforeLoad.

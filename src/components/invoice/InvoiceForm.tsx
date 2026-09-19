@@ -19,6 +19,7 @@ import {
   type LineItem,
   type PaperSize,
 } from "@/lib/invoice";
+import { trackEvent } from "@/lib/analytics";
 
 const DEFAULT_FONT_VALUE = "__default__";
 
@@ -64,7 +65,9 @@ export function InvoiceForm({ data, onChange }: Props) {
               value={data.language}
               onValueChange={(v) => {
                 const language = v as InvoiceLanguage;
+                if (language === data.language) return;
                 onChange({ ...data, language, invoiceFont: SCRIPT_FONTS[language] ?? null });
+                trackEvent("invoice_translated", { language });
               }}
             >
               <SelectTrigger><SelectValue /></SelectTrigger>

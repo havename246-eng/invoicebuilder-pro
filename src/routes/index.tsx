@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site/Header";
 import { PricingSection } from "@/components/site/Pricing";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import footerOverlayPattern from "@/assets/footer-overlay-pattern.svg";
@@ -319,7 +320,9 @@ function Landing() {
                   size="lg"
                   className="h-12 rounded-full bg-accent-lime px-9 text-base text-blue-950 hover:bg-accent-lime/90"
                 >
-                  <Link to="/builder">Create your invoice for Free</Link>
+                  <Link to="/builder" onClick={() => trackEvent("cta_click", { location: "hero" })}>
+                    Create your invoice for Free
+                  </Link>
                 </Button>
                 <Button
                   asChild

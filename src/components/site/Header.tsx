@@ -5,6 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import logoDark from "@/assets/Logo.svg";
@@ -208,7 +209,9 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
                   : "bg-white text-blue-900 hover:bg-white/90",
               )}
             >
-              <Link to="/builder">Create invoice</Link>
+              <Link to="/builder" onClick={() => trackEvent("cta_click", { location: "header" })}>
+                Create invoice
+              </Link>
             </Button>
             {user && <UserMenu user={user} dark={isDark && !scrolled} />}
             <button

@@ -23,6 +23,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
 import { safeRedirect } from "@/lib/safe-redirect";
+import { trackEvent } from "@/lib/analytics";
 
 const signupSchema = z
   .object({
@@ -87,6 +88,10 @@ function SignupPage() {
       form.setError("email", { message: error.message });
       return;
     }
+
+    // The account exists at this point whether or not a session came back, so
+    // report it here and not again when the confirmation link is opened.
+    trackEvent("sign_up", { method: "email" });
 
     // With email confirmation on, signUp returns a user but no session — the
     // account isn't usable until the emailed link is opened.

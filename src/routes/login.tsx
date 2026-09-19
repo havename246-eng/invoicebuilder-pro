@@ -22,6 +22,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
 import { safeRedirect } from "@/lib/safe-redirect";
+import { trackEvent } from "@/lib/analytics";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
@@ -73,6 +74,8 @@ function LoginPage() {
       form.setError("password", { message: error.message });
       return;
     }
+
+    trackEvent("login", { method: "email" });
 
     // Re-run the root beforeLoad so the header and route guards see the session.
     await router.invalidate();

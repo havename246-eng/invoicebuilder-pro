@@ -69,13 +69,32 @@ export const signOutFn = createServerFn({ method: "POST" }).handler(async () => 
  */
 export const exchangeCodeFn = createServerFn({ method: "POST" })
   .inputValidator((code: string) => code)
-  .handler(async ({ data: code }): Promise<{ ok: boolean; error?: string }> => {
-    const supabase = getSupabaseServerClient();
-    if (!supabase) return { ok: false, error: "Supabase is not configured." };
+  .handler(
+    async ({ data: code }): Promise<{ ok: boolean; error?: string; isNewUser?: boolean }> => {
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return { ok: false, error: "Supabase is not configured." };
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    return error ? { ok: false, error: error.message } : { ok: true };
-  });
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) return { ok: false, error: error.message };
+
+      return { ok: true, isNewUser: isFirstSignIn(data.user) };
+    },
+  );
+
+/**
+ * Whether this sign-in is the one that created the account.
+ *
+ * Supabase reports no "was this a signup?" flag on an OAuth exchange, but for
+ * an account created by this very exchange `created_at` and `last_sign_in_at`
+ * are stamped moments apart, where a returning user's differ by hours or more.
+ * Only analytics reads this, so an occasional miscall costs nothing.
+ */
+function isFirstSignIn(user: { created_at?: string | null; last_sign_in_at?: string | null }) {
+  const createdAt = Date.parse(user?.created_at ?? "");
+  const lastSignIn = Date.parse(user?.last_sign_in_at ?? "");
+  if (Number.isNaN(createdAt) || Number.isNaN(lastSignIn)) return false;
+  return Math.abs(lastSignIn - createdAt) < 10_000;
+}
 
 /**
  * Verifies an emailed one-time token (signup confirmation, password recovery)

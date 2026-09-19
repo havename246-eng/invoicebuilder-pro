@@ -5,6 +5,7 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/button";
 import { exchangeCodeFn, verifyOtpFn } from "@/lib/auth";
 import { safeRedirect } from "@/lib/safe-redirect";
+import { oauthEventHash } from "@/lib/analytics";
 
 /**
  * Single landing point for every link Supabase sends a user back through:
@@ -37,7 +38,13 @@ export const Route = createFileRoute("/auth/callback")({
     if (deps.code) {
       const result = await exchangeCodeFn({ data: deps.code });
       if (!result.ok) return { error: result.error ?? "Could not complete sign-in." };
-      throw redirect({ to: destination });
+      // This loader runs server-side and redirects, so no client JS runs here to
+      // report the sign-in to analytics. Hand the event to the destination page
+      // as a URL fragment, which the root component fires and strips on arrival.
+      throw redirect({
+        to: destination,
+        hash: oauthEventHash(result.isNewUser ? "sign_up" : "login"),
+      });
     }
 
     if (deps.token_hash && deps.type) {

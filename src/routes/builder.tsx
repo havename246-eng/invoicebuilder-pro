@@ -10,6 +10,7 @@ import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { exportPDF, exportPNG, hapticBuzz } from "@/lib/export";
+import { trackEvent } from "@/lib/analytics";
 
 const BUILDER_URL = "https://craft-bill-ai.lovable.app/builder";
 
@@ -43,6 +44,20 @@ function Builder() {
   const mountedRef = useRef(false);
   const progressFillRef = useRef<HTMLSpanElement>(null);
   const checkRef = useRef<SVGSVGElement>(null);
+  const createdReportedRef = useRef(false);
+
+  // Invoices aren't persisted anywhere yet (see the dashboard), so there's no
+  // save to hang "created" off. The first edit the visitor makes to the blank
+  // invoice is the moment one comes into existence, and it's the funnel step
+  // between clicking a CTA and exporting. Restoring a saved draft below goes
+  // through setData directly and deliberately doesn't count as creating one.
+  const handleInvoiceChange = (next: InvoiceData) => {
+    setData(next);
+    if (!createdReportedRef.current) {
+      createdReportedRef.current = true;
+      trackEvent("invoice_created");
+    }
+  };
 
   const setProgressFillRef = (el: HTMLSpanElement | null) => {
     progressFillRef.current = el;
@@ -123,6 +138,7 @@ function Builder() {
         await exportPDF(el, data, setExportProgress);
         toast.success("PDF downloaded", { id: tId });
       }
+      trackEvent("invoice_downloaded", { format: kind });
       setExportDone(true);
       await new Promise((r) => setTimeout(r, 1300));
     } catch (e) {
@@ -161,7 +177,7 @@ function Builder() {
         {/* Split */}
         <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-8">
           <div className="no-print min-w-0">
-            <InvoiceForm data={data} onChange={setData} />
+            <InvoiceForm data={data} onChange={handleInvoiceChange} />
           </div>
           <div className="min-w-0 lg:sticky lg:top-24">
             <InvoicePreview data={data} />
