@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
-import { FileText, Store, Zap, Wallet } from "lucide-react";
+import { Coffee, FileText, Store, Zap, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
 // PRICING-HIDDEN: restore this import together with the <PricingSection /> render below.
@@ -20,6 +20,15 @@ import bannerPaymentQr from "@/assets/banners/payment-qr.png";
 import bannerExport from "@/assets/banners/export.png";
 
 const SITE_URL = "https://craft-bill-ai.lovable.app";
+
+// Ko-fi support link, rebuilt as a plain anchor rather than dropping in Ko-fi's
+// Widget_2.js. That script renders itself with document.writeln, which erases the
+// document whenever it runs after parse — i.e. always, in a hydrated app — and it
+// would need four CSP exceptions: storage.ko-fi.com in script-src and img-src,
+// fonts.googleapis.com in style-src, and fonts.gstatic.com in font-src for the
+// Quicksand webfont it loads for a single button. The markup below is the same
+// link and label the widget would have produced, using our own icon and font.
+const KOFI_URL = "https://ko-fi.com/A3K027CE1J";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -510,6 +519,27 @@ function Landing() {
                   Terms and Conditions
                 </Link>
               </nav>
+            </div>
+
+            {/* Support */}
+            <div className="flex max-w-[230px] flex-col items-center gap-3 md:items-start">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-subtext">
+                Support
+              </p>
+              <p className="text-[13px] leading-relaxed text-ink-subtext">
+                InvoiceCraft is free for everyone. If it saves you time, you can help keep it that
+                way.
+              </p>
+              <a
+                href={KOFI_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackEvent("support_click", { location: "footer" })}
+                className="mt-1 inline-flex items-center gap-2 rounded-lg bg-[#204089] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-smooth hover:opacity-90"
+              >
+                <Coffee className="h-4 w-4" aria-hidden="true" />
+                Support me on Ko-fi
+              </a>
             </div>
           </div>
         </div>
