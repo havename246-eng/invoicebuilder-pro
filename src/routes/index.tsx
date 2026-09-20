@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
-import { FileText, Store, Zap, Wallet } from "lucide-react";
+import { FileText, Heart, Store, Zap, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/Header";
-import { PricingSection } from "@/components/site/Pricing";
+// PRICING-HIDDEN: restore this import together with the <PricingSection /> render below.
+// import { PricingSection } from "@/components/site/Pricing";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { trackEvent } from "@/lib/analytics";
@@ -19,6 +20,12 @@ import bannerPaymentQr from "@/assets/banners/payment-qr.png";
 import bannerExport from "@/assets/banners/export.png";
 
 const SITE_URL = "https://craft-bill-ai.lovable.app";
+
+// Lemon Squeezy hosted checkout for voluntary support. A plain link opening in a
+// new tab keeps this working under the site's CSP as-is — the overlay checkout
+// would need lemon.js allowed in script-src and *.lemonsqueezy.com in frame-src.
+const LEMONSQUEEZY_CHECKOUT_URL =
+  "https://invoice-craft.lemonsqueezy.com/checkout/buy/c02ebb5b-5d07-4c4d-a785-181240b525ab";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -137,18 +144,6 @@ const audiences = [
   "Photographers & Videographers",
   "Lawyers & Accountants",
 ];
-
-function BuyMeACoffee() {
-  return (
-    <a href="https://www.buymeacoffee.com/invoicecraft" target="_blank" rel="noopener noreferrer">
-      <img
-        src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-        alt="Buy Me a Coffee"
-        style={{ height: 60, width: 217 }}
-      />
-    </a>
-  );
-}
 
 function Landing() {
   const sample: InvoiceData = {
@@ -447,8 +442,10 @@ function Landing() {
           </div>
         </section>
 
-        {/* Pricing */}
-        <PricingSection />
+        {/* PRICING-HIDDEN: hidden until payment integration lands. The component in
+            components/site/Pricing.tsx is untouched — uncomment this and its import
+            to bring the section back. */}
+        {/* <PricingSection /> */}
 
         {/* CTA */}
         <section className="bg-ink-canvas py-12 md:py-16">
@@ -496,9 +493,10 @@ function Landing() {
                 <a href="#features" className="text-ink-subtext transition-smooth hover:text-white">
                   Features
                 </a>
-                <a href="#pricing" className="text-ink-subtext transition-smooth hover:text-white">
+                {/* PRICING-HIDDEN: restore alongside the nav links in Header.tsx. */}
+                {/* <a href="#pricing" className="text-ink-subtext transition-smooth hover:text-white">
                   Pricing
-                </a>
+                </a> */}
               </nav>
             </div>
 
@@ -514,12 +512,31 @@ function Landing() {
                 <Link to="/cookies" className="text-ink-subtext transition-smooth hover:text-white">
                   Cookie Policy
                 </Link>
+                <Link to="/terms" className="text-ink-subtext transition-smooth hover:text-white">
+                  Terms and Conditions
+                </Link>
               </nav>
             </div>
 
             {/* Support */}
-            <div className="flex items-center">
-              <BuyMeACoffee />
+            <div className="flex max-w-[230px] flex-col items-center gap-3 md:items-start">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-subtext">
+                Support
+              </p>
+              <p className="text-[13px] leading-relaxed text-ink-subtext">
+                InvoiceCraft is free for everyone. If it saves you time, you can help keep it that
+                way.
+              </p>
+              <a
+                href={LEMONSQUEEZY_CHECKOUT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackEvent("support_click", { location: "footer" })}
+                className="mt-1 inline-flex items-center gap-2 rounded-full border border-ink-border/40 px-5 py-2.5 text-sm text-white transition-smooth hover:bg-white/10"
+              >
+                <Heart className="h-4 w-4" aria-hidden="true" />
+                Support my work
+              </a>
             </div>
           </div>
         </div>

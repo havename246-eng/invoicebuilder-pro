@@ -160,7 +160,9 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
             >
               Features
             </a>
-            <a
+            {/* PRICING-HIDDEN: the pricing section is off the homepage until payments
+                are integrated, so this anchor would scroll nowhere. Restore with it. */}
+            {/* <a
               href="#pricing"
               className={cn(
                 "text-sm transition-smooth",
@@ -170,7 +172,7 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
               )}
             >
               Pricing
-            </a>
+            </a> */}
           </nav>
           <div className="flex items-center gap-2 sm:gap-5">
             {!user && (
@@ -259,13 +261,14 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
               >
                 Features
               </a>
-              <a
+              {/* PRICING-HIDDEN: restore alongside the desktop nav link above. */}
+              {/* <a
                 href="#pricing"
                 onClick={() => setMobileOpen(false)}
                 className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
               >
                 Pricing
-              </a>
+              </a> */}
 
               <div className="my-1 h-px bg-border" />
 
