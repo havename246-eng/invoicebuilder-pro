@@ -1,0 +1,31 @@
+# InvoiceCraft
+
+> InvoiceCraft is a free online invoice maker for freelancers and small businesses, built for Cambodia. It creates professional invoices in under a minute with translation between English, Khmer, Chinese, Japanese and Korean, native USD and Cambodian Riel (៛) formatting, custom logo branding, payment QR codes, and one-click PDF or PNG export. No account is needed to create an invoice.
+
+## Key facts
+- Website: https://www.invoicecraft.site
+- Invoice builder: https://www.invoicecraft.site/builder
+- Price: Free. No sign-up required to create and export an invoice.
+- Made in: Phnom Penh, Cambodia
+- Best for: solo freelancers, small businesses, consultants, agencies, contractors, creators and influencers, tutors and coaches, designers and developers, photographers and videographers, lawyers and accountants
+- Currencies: US Dollar (USD) and Cambodian Riel (KHR, ៛), plus Chinese Yuan, Japanese Yen and Korean Won, each with correct symbol placement and decimals
+- Languages: invoices render in English, Khmer, Chinese, Japanese or Korean, with the layout and number formatting unchanged
+- Payments: add a scannable payment QR code (for example a KHQR or bank QR from ABA, ACLEDA or Wing) so clients can pay from their banking app
+- Export: print-ready PDF or PNG, suitable for email, Telegram and other messaging apps, or printing
+- Privacy: invoices are held in the browser's own local storage on the user's device, not on InvoiceCraft servers. Saving invoices to an account is not available yet.
+
+## Features
+- [Translation](https://www.invoicecraft.site/#features): switch an invoice between English, Khmer, Chinese, Japanese and Korean in one click
+- [Custom branding](https://www.invoicecraft.site/#features): upload a logo once and it appears on every invoice
+- [Multi-currency](https://www.invoicecraft.site/#features): native USD and Riel formatting
+- [Smart fields](https://www.invoicecraft.site/#features): empty optional fields hide automatically; subtotal, tax and totals calculate live
+- [Payment QR](https://www.invoicecraft.site/#features): embed a payment QR code on the invoice
+- [Export](https://www.invoicecraft.site/#features): download as PDF or PNG
+
+## Common questions
+- [FAQ](https://www.invoicecraft.site/faq): answers on pricing, Khmer invoices, Riel, VAT, QR payments and data privacy
+
+## Legal
+- [Privacy Notice](https://www.invoicecraft.site/privacy)
+- [Terms and Conditions](https://www.invoicecraft.site/terms)
+- [Cookie Policy](https://www.invoicecraft.site/cookies)

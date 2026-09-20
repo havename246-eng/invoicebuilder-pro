@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { fetchUser, type AuthUser } from "@/lib/auth";
 import { trackOAuthReturnFromHash } from "@/lib/analytics";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { SITE_URL, absoluteUrl } from "@/lib/site-url";
 
 import appCss from "../styles.css?url";
 
@@ -36,8 +37,7 @@ function NotFoundComponent() {
   );
 }
 
-const SITE_URL = "https://craft-bill-ai.lovable.app";
-const OG_IMAGE = `${SITE_URL}/og-image.png`;
+const OG_IMAGE = absoluteUrl("/og-image.png");
 const GA_MEASUREMENT_ID = "G-DC6G1487CL";
 
 export type RouterContext = {
@@ -71,7 +71,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "canonical", href: SITE_URL },
+      // No canonical here on purpose. Router merges root links with the route's
+      // rather than replacing them, so a canonical at this level emitted a
+      // second, conflicting one on every page that declares its own — and
+      // Google discards all of them when it sees more than one. Each route owns
+      // its canonical; see src/lib/site-url.ts.
       // .ico first for the browsers that only read that one; the SVG wins
       // wherever it's understood, so the tab icon stays sharp at any density.
       { rel: "icon", href: "/favicon.ico", sizes: "32x32" },

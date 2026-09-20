@@ -24,6 +24,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { trackEvent } from "@/lib/analytics";
+import { noIndexHead } from "@/lib/site-url";
 
 const signupSchema = z
   .object({
@@ -40,6 +41,7 @@ const signupSchema = z
 type SignupValues = z.infer<typeof signupSchema>;
 
 export const Route = createFileRoute("/signup")({
+  head: () => noIndexHead("Create your account | InvoiceCraft"),
   validateSearch: z.object({
     redirect: z.string().optional().catch(undefined),
   }),

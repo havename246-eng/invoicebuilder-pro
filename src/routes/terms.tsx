@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/Header";
+import { absoluteUrl } from "@/lib/site-url";
 
-const SITE_URL = "https://craft-bill-ai.lovable.app";
+const PAGE_URL = absoluteUrl("/terms");
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -12,9 +13,9 @@ export const Route = createFileRoute("/terms")({
         content:
           "The terms you agree to when using InvoiceCraft — what the tool does, what you're responsible for, and the limits of the service.",
       },
-      { property: "og:url", content: `${SITE_URL}/terms` },
+      { property: "og:url", content: PAGE_URL },
     ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/terms` }],
+    links: [{ rel: "canonical", href: PAGE_URL }],
   }),
   component: TermsAndConditions,
 });

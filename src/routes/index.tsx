@@ -3,6 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
 import { FileText, Store, Zap, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { SiteHeader } from "@/components/site/Header";
 // PRICING-HIDDEN: restore this import together with the <PricingSection /> render below.
 // import { PricingSection } from "@/components/site/Pricing";
@@ -10,6 +16,8 @@ import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { SITE_URL, absoluteUrl } from "@/lib/site-url";
+import { faqs } from "@/lib/faq";
 import logoLight from "@/assets/Logo-light.svg";
 import footerOverlayPattern from "@/assets/footer-overlay-pattern.svg";
 import bannerTranslation from "@/assets/banners/ai-translation.png";
@@ -19,12 +27,10 @@ import bannerSmartFields from "@/assets/banners/smart-fields.png";
 import bannerPaymentQr from "@/assets/banners/payment-qr.png";
 import bannerExport from "@/assets/banners/export.png";
 
-const SITE_URL = "https://craft-bill-ai.lovable.app";
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Free Online Invoice Maker with AI Translation & QR Payments | Invoice Craft" },
+      { title: "Free Online Invoice Maker with AI Translation & QR Payments | InvoiceCraft" },
       {
         name: "description",
         content:
@@ -32,7 +38,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "Free Online Invoice Maker with AI Translation & QR Payments | Invoice Craft",
+        content: "Free Online Invoice Maker with AI Translation & QR Payments | InvoiceCraft",
       },
       {
         property: "og:description",
@@ -42,30 +48,69 @@ export const Route = createFileRoute("/")({
       { property: "og:url", content: SITE_URL },
     ],
     links: [{ rel: "canonical", href: SITE_URL }],
+    // One @graph rather than several loose blocks: the @id references let the
+    // three entities point at each other, so search engines read one brand with
+    // a site and an app rather than three unrelated things that share a name.
     scripts: [
       {
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "WebApplication",
-          name: "InvoiceCraft",
-          url: SITE_URL,
-          description:
-            "Free invoice generator for freelancers and small businesses. Create professional invoices with custom branding, multi-currency support, and PDF export.",
-          applicationCategory: "BusinessApplication",
-          operatingSystem: "Any",
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "USD",
-          },
-          featureList: [
-            "Custom branding & logo upload",
-            "Multi-currency (USD & KHR Riel)",
-            "AI-powered translation (100+ languages)",
-            "PDF & PNG export",
-            "Payment QR code embedding",
-            "Real-time invoice preview",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": `${SITE_URL}/#organization`,
+              name: "InvoiceCraft",
+              url: SITE_URL,
+              // 180x180, comfortably over Google's 112x112 floor for a logo.
+              logo: {
+                "@type": "ImageObject",
+                url: absoluteUrl("/apple-touch-icon.png"),
+                width: 180,
+                height: 180,
+              },
+              description:
+                "InvoiceCraft is a free online invoice generator for freelancers and small businesses, with AI translation, multi-currency support, and instant PDF export.",
+              // No sameAs: it should list social profiles this brand actually
+              // controls, and inventing them is worse than omitting the field.
+            },
+            {
+              "@type": "WebSite",
+              "@id": `${SITE_URL}/#website`,
+              name: "InvoiceCraft",
+              url: SITE_URL,
+              publisher: { "@id": `${SITE_URL}/#organization` },
+              inLanguage: "en",
+              // No potentialAction/SearchAction — the site has no search.
+            },
+            {
+              "@type": "WebApplication",
+              "@id": `${SITE_URL}/#webapp`,
+              name: "InvoiceCraft",
+              url: SITE_URL,
+              publisher: { "@id": `${SITE_URL}/#organization` },
+              description:
+                "Free invoice generator for freelancers and small businesses. Create professional invoices with custom branding, multi-currency support, and PDF export.",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Any",
+              browserRequirements: "Requires JavaScript.",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+              },
+              featureList: [
+                "Custom branding & logo upload",
+                "Multi-currency (USD & KHR Riel)",
+                "AI-powered translation (100+ languages)",
+                "PDF & PNG export",
+                "Payment QR code embedding",
+                "Real-time invoice preview",
+              ],
+            },
+            // FAQPage lives on /faq, not here. The homepage shows only a
+            // preview of the questions, and FAQPage markup has to match the
+            // full set of answers on the page carrying it.
           ],
         }),
       },
@@ -73,6 +118,9 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
+
+/** How many questions the homepage previews before linking out to /faq. */
+const HOMEPAGE_FAQ_COUNT = 4;
 
 const saveTime = [
   { icon: Store, label: "Small Businesses" },
@@ -84,6 +132,8 @@ const saveTime = [
 const features = [
   {
     banner: bannerTranslation,
+    width: 1423,
+    height: 1166,
     eyebrow: "AI Translation",
     heading: "Every invoice, translated instantly",
     desc: "Flip any invoice into 100+ languages with one click — no manual retyping, no delays. Every translation keeps your formatting intact.",
@@ -91,6 +141,8 @@ const features = [
   },
   {
     banner: bannerBranding,
+    width: 1423,
+    height: 1167,
     eyebrow: "Custom Branding",
     heading: "Every invoice, unmistakably yours",
     desc: "Upload your logo once and every invoice matches your identity — consistent, professional, and instantly recognizable to your clients.",
@@ -98,6 +150,8 @@ const features = [
   },
   {
     banner: bannerCurrency,
+    width: 1423,
+    height: 1167,
     eyebrow: "Multi-Currency",
     heading: "Built for real numbers, not just US dollars",
     desc: "Native USD and Cambodian Riel (៛) formatting with correct symbol placement and decimal handling, built for how local businesses actually invoice.",
@@ -105,6 +159,8 @@ const features = [
   },
   {
     banner: bannerSmartFields,
+    width: 1423,
+    height: 1167,
     eyebrow: "Smart Fields",
     heading: "Less typing, fewer mistakes",
     desc: "Optional fields auto-hide when empty, and totals, tax, and line-item math calculate live as you type — nothing to double-check by hand.",
@@ -112,6 +168,8 @@ const features = [
   },
   {
     banner: bannerPaymentQr,
+    width: 1422,
+    height: 1167,
     eyebrow: "Payment QR",
     heading: "From sent to paid, without the back-and-forth",
     desc: "Embed a scannable payment QR code so clients can pay instantly from their banking app — no manual transfers, no chasing payments.",
@@ -119,6 +177,8 @@ const features = [
   },
   {
     banner: bannerExport,
+    width: 1423,
+    height: 1167,
     eyebrow: "Export",
     heading: "Client-ready files in one click",
     desc: "Export print-ready PDF or PNG files optimized for email, messaging apps, or printing — pixel-perfect every time.",
@@ -295,7 +355,7 @@ function Landing() {
           <div className="reveal-group container mx-auto max-w-7xl px-4 sm:px-6 pt-20 pb-16 md:pt-28 md:pb-20">
             <div className="flex flex-col items-center text-center">
               <h1 className="reveal-item text-[34px] font-bold leading-[1.15] text-white max-w-2xl md:max-w-6xl md:text-[52px]">
-                Instant e-invoices for small business
+                Free invoice generator for small business
                 <br />
                 translated by AI, paid faster.
               </h1>
@@ -406,11 +466,17 @@ function Landing() {
                     </Button>
                   </div>
                   <div className="w-full flex-1">
+                    {/* Intrinsic width/height let the browser reserve the box
+                        before the PNG arrives; without them these six lazy
+                        images each shift the section on load (CLS). */}
                     <img
                       src={f.banner}
                       alt={`${f.eyebrow} illustration`}
                       className="mx-auto w-full max-w-[500px]"
+                      width={f.width}
+                      height={f.height}
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 </div>
@@ -433,6 +499,38 @@ function Landing() {
                 className="inline-block whitespace-nowrap rounded-full bg-accent-lime px-6 py-2 text-[clamp(1rem,4vw,1.5rem)] text-blue-950"
               />
             </div>
+          </div>
+        </section>
+
+        {/* FAQ preview. Deliberately a subset: /faq carries the full list and
+            the FAQPage markup, so this doesn't duplicate that page wholesale. */}
+        <section id="faq" className="bg-surface py-16 md:py-20" aria-label="Frequently asked questions">
+          <div className="reveal-group container mx-auto max-w-3xl px-4 sm:px-6">
+            <h2 className="reveal-item text-center text-[28px] font-bold text-foreground md:text-[36px]">
+              Frequently asked questions
+            </h2>
+            <p className="reveal-item mx-auto mt-3 max-w-xl text-center text-[15px] text-muted-foreground">
+              Everything you need to know before sending your first invoice.
+            </p>
+            {/* Collapsible for scanning, but every answer ships in the HTML —
+                crawlers and AI summarizers read it whether or not it's open. */}
+            <Accordion type="single" collapsible className="reveal-item mt-8 w-full">
+              {faqs.slice(0, HOMEPAGE_FAQ_COUNT).map((f, i) => (
+                <AccordionItem key={f.q} value={`faq-${i}`}>
+                  <AccordionTrigger className="text-left text-[16px] font-semibold text-foreground">
+                    {f.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[15px] leading-relaxed text-muted-foreground">
+                    {f.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+            <p className="reveal-item mt-8 text-center text-[15px] text-muted-foreground">
+              <Link to="/faq" className="font-semibold text-blue-900 underline underline-offset-4">
+                See all {faqs.length} questions
+              </Link>
+            </p>
           </div>
         </section>
 
@@ -487,6 +585,9 @@ function Landing() {
                 <a href="#features" className="text-ink-subtext transition-smooth hover:text-white">
                   Features
                 </a>
+                <Link to="/faq" className="text-ink-subtext transition-smooth hover:text-white">
+                  FAQ
+                </Link>
                 {/* PRICING-HIDDEN: restore alongside the nav links in Header.tsx. */}
                 {/* <a href="#pricing" className="text-ink-subtext transition-smooth hover:text-white">
                   Pricing

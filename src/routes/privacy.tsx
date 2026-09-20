@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/Header";
+import { absoluteUrl } from "@/lib/site-url";
 
-const SITE_URL = "https://craft-bill-ai.lovable.app";
+const PAGE_URL = absoluteUrl("/privacy");
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
@@ -11,9 +12,9 @@ export const Route = createFileRoute("/privacy")({
         name: "description",
         content: "How InvoiceCraft handles your data — no accounts, no server-side storage, invoices stay on your device.",
       },
-      { property: "og:url", content: `${SITE_URL}/privacy` },
+      { property: "og:url", content: PAGE_URL },
     ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/privacy` }],
+    links: [{ rel: "canonical", href: PAGE_URL }],
   }),
   component: PrivacyNotice,
 });

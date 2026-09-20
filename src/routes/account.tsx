@@ -21,8 +21,10 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
 import { signOutFn, type AuthUser } from "@/lib/auth";
+import { noIndexHead } from "@/lib/site-url";
 
 export const Route = createFileRoute("/account")({
+  head: () => noIndexHead("Account settings | InvoiceCraft"),
   beforeLoad: ({ context, location }) => {
     if (!context.user) {
       throw redirect({ to: "/login", search: { redirect: location.href } });

@@ -23,6 +23,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { trackEvent } from "@/lib/analytics";
+import { noIndexHead } from "@/lib/site-url";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
@@ -32,6 +33,7 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 export const Route = createFileRoute("/login")({
+  head: () => noIndexHead("Sign in | InvoiceCraft"),
   validateSearch: z.object({
     redirect: z.string().optional().catch(undefined),
   }),

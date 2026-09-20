@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hostname must stay in step with the canonical tags, which resolve from
+  src/lib/site-url.ts. Both use the www host; the apex 301s to it at the edge.
+  A sitemap that lists a different host than the canonicals is a contradiction
+  search engines resolve by trusting the canonical and distrusting this file.
+
+  Only publicly indexable pages belong here. Auth and account routes are
+  excluded on purpose: they're disallowed in robots.txt and carry noindex, and
+  listing a noindex URL in a sitemap is a contradictory signal.
+
+  lastmod tracks the date each route last changed. Keep it honest — a sitemap
+  that claims a page changed when it didn't gets its lastmod ignored wholesale.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.invoicecraft.site/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.invoicecraft.site/builder</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.invoicecraft.site/faq</loc>
+    <lastmod>2026-09-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.invoicecraft.site/privacy</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.invoicecraft.site/cookies</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.invoicecraft.site/terms</loc>
+    <lastmod>2026-09-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

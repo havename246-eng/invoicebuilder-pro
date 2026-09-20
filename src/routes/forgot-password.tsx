@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { noIndexHead } from "@/lib/site-url";
 
 const schema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
@@ -28,6 +29,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 export const Route = createFileRoute("/forgot-password")({
+  head: () => noIndexHead("Reset your password | InvoiceCraft"),
   component: ForgotPasswordPage,
 });
 

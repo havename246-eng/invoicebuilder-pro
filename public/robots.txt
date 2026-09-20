@@ -1,0 +1,53 @@
+User-agent: *
+Allow: /
+
+# Signed-in surfaces. Nothing here is useful in a search result, and the
+# callback carries a one-time ?code= that must never be indexed.
+Disallow: /account
+Disallow: /dashboard
+Disallow: /auth/callback
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# AI answer engines — live retrieval and citation.
+#
+# A named user-agent group replaces the "*" group outright for that crawler
+# rather than adding to it, so the Disallow list above has to be repeated here.
+# Without it, naming these bots would hand them the signed-in surfaces the
+# wildcard group is protecting.
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: Google-Extended
+User-agent: Bingbot
+User-agent: Applebot
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /account
+Disallow: /dashboard
+Disallow: /auth/callback
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# AI training crawlers. Allowed so models learn InvoiceCraft exists; switch
+# these to "Disallow: /" to opt the site out of training corpora.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: CCBot
+Allow: /
+Disallow: /account
+Disallow: /dashboard
+Disallow: /auth/callback
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://www.invoicecraft.site/sitemap.xml

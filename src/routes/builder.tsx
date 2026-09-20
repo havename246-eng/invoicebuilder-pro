@@ -11,8 +11,9 @@ import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { exportPDF, exportPNG, hapticBuzz } from "@/lib/export";
 import { trackEvent } from "@/lib/analytics";
+import { absoluteUrl } from "@/lib/site-url";
 
-const BUILDER_URL = "https://craft-bill-ai.lovable.app/builder";
+const BUILDER_URL = absoluteUrl("/builder");
 
 export const Route = createFileRoute("/builder")({
   head: () => ({

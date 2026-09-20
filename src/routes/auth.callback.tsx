@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { exchangeCodeFn, verifyOtpFn } from "@/lib/auth";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { oauthEventHash } from "@/lib/analytics";
+import { noIndexHead } from "@/lib/site-url";
 
 /**
  * Single landing point for every link Supabase sends a user back through:
@@ -16,6 +17,7 @@ import { oauthEventHash } from "@/lib/analytics";
  * so the session cookies are written before anything renders.
  */
 export const Route = createFileRoute("/auth/callback")({
+  head: () => noIndexHead("Signing you in | InvoiceCraft"),
   validateSearch: z.object({
     code: z.string().optional().catch(undefined),
     token_hash: z.string().optional().catch(undefined),

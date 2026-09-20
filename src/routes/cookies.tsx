@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/Header";
+import { absoluteUrl } from "@/lib/site-url";
 
-const SITE_URL = "https://craft-bill-ai.lovable.app";
+const PAGE_URL = absoluteUrl("/cookies");
 
 export const Route = createFileRoute("/cookies")({
   head: () => ({
@@ -11,9 +12,9 @@ export const Route = createFileRoute("/cookies")({
         name: "description",
         content: "InvoiceCraft doesn't use tracking or advertising cookies — here's what we actually store.",
       },
-      { property: "og:url", content: `${SITE_URL}/cookies` },
+      { property: "og:url", content: PAGE_URL },
     ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/cookies` }],
+    links: [{ rel: "canonical", href: PAGE_URL }],
   }),
   component: CookiePolicy,
 });

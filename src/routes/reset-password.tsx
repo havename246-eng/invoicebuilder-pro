@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { noIndexHead } from "@/lib/site-url";
 
 const schema = z
   .object({
@@ -33,6 +34,7 @@ const schema = z
 type Values = z.infer<typeof schema>;
 
 export const Route = createFileRoute("/reset-password")({
+  head: () => noIndexHead("Choose a new password | InvoiceCraft"),
   component: ResetPasswordPage,
 });
 

@@ -1,9 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noIndexHead } from "@/lib/site-url";
 import { FilePlus2, Inbox } from "lucide-react";
 import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/dashboard")({
+  head: () => noIndexHead("Dashboard | InvoiceCraft"),
   // Runs on the server during SSR, so a signed-out visitor is redirected before
   // any of this renders — no flash of protected content.
   beforeLoad: ({ context, location }) => {
