@@ -79,15 +79,7 @@ const csp = [
 // implementation spreads these options straight into nitro() from nitro/vite —
 // so routeRules does take effect. Cast past the too-narrow declaration.
 const nitro = {
-  preset: "vercel",
-  // The wrapper defaults output paths to the Cloudflare dist/server + dist/client
-  // layout regardless of preset — override back to Nitro's Vercel Build Output
-  // API layout, or Vercel finds no build output and serves a 404.
-  output: {
-    dir: ".vercel/output",
-    serverDir: ".vercel/output/functions/__server.func",
-    publicDir: ".vercel/output/static",
-  },
+  preset: "cloudflare-module",
   // Security headers. These belong here rather than in vercel.json: this build
   // emits the Vercel Build Output API layout, whose generated
   // .vercel/output/config.json owns the routing, so Nitro route rules are what

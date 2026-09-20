@@ -1,7 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstack-start-app",
+  "name": "invoicebuilder-pro",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  // No "main": the cloudflare-module preset generates dist/server/wrangler.json
+  // with its own entry point and asset binding, and Nitro warns that any main
+  // set here is overridden. Name and compatibility settings above are still
+  // read and copied into the generated config.
 }
