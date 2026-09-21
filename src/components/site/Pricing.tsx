@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const freeFeatures = [
   "Unlimited invoices, no account required",
-  "USD & Riel formatting, auto-calculated totals & tax",
+  "USD, Riel, Yuan, Yen & Won formatting, auto-calculated totals & tax",
   "AI translation",
   "Payment QR code",
   "PDF/PNG export",

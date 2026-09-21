@@ -53,7 +53,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "InvoiceCraft — Free Invoice Generator for Freelancers" },
-      { name: "description", content: "Create professional invoices in seconds. Free invoice maker with custom branding, multi-currency (USD & KHR), AI translation, and one-click PDF export." },
+      { name: "description", content: "Free invoice maker with custom branding, multi-currency (USD, Riel, Yuan, Yen, Won), Khmer and CJK invoice rendering, and one-click PDF export." },
       { name: "author", content: "InvoiceCraft" },
       { name: "robots", content: "index, follow" },
       { property: "og:site_name", content: "InvoiceCraft" },

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/builder")({
   head: () => ({
     meta: [
       { title: "Invoice Builder — Create & Export Invoices | InvoiceCraft" },
-      { name: "description", content: "Build beautiful invoices with live preview, custom branding, bilingual KH/EN support, multi-currency formatting, and one-click PDF/PNG export. Free, no sign-up required." },
+      { name: "description", content: "Build invoices with live preview, custom branding, Khmer and CJK rendering, multi-currency formatting, and one-click PDF or PNG export. Free, no sign-up." },
       { property: "og:title", content: "Invoice Builder — InvoiceCraft" },
       { property: "og:description", content: "Build and export professional invoices with live preview, custom branding, and multi-currency support." },
       { property: "og:url", content: BUILDER_URL },

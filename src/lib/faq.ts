@@ -20,11 +20,11 @@ export const faqs = [
   },
   {
     q: "Which currencies does InvoiceCraft support?",
-    a: "US dollars and Cambodian Riel (៛), each with the correct symbol placement and decimal handling for that currency, so totals read the way local clients expect.",
+    a: "Five: US dollars, Cambodian Riel (៛), Chinese Yuan, Japanese Yen and Korean Won. Each uses the correct symbol placement and decimal rules for that currency — Riel, Yen and Won show no decimals — so totals read the way local clients expect.",
   },
   {
     q: "Can I send an invoice in another language?",
-    a: "Yes. Built-in AI translation converts an invoice into over 100 languages in one click, and your layout, branding, and number formatting stay intact.",
+    a: "Yes. An invoice renders in English, Khmer, Chinese, Japanese or Korean, and the font switches automatically to one that covers the script. This translates the invoice's own labels — Invoice, Bill To, Subtotal, Tax, Total — while your line-item text and notes stay exactly as you typed them.",
   },
   {
     q: "What file formats can I export?",

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/faq")({
       {
         name: "description",
         content:
-          "Answers to common questions about InvoiceCraft: pricing, whether you need an account, supported currencies, AI translation, export formats, and where your invoice data is stored.",
+          "Answers on InvoiceCraft pricing, accounts, supported currencies, Khmer and CJK invoices, export formats, and where your invoice data is stored.",
       },
       { property: "og:title", content: "Invoice Generator FAQ | InvoiceCraft" },
       {

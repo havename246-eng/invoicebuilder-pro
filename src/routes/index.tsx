@@ -34,7 +34,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Create professional e-invoices in seconds. AI translation into 100+ languages, custom branding, USD & Riel currency support, QR payments, and instant PDF export.",
+          "Create professional invoices in seconds. Render them in English, Khmer, Chinese, Japanese or Korean, with USD and Riel formatting, QR payments and PDF export.",
       },
       {
         property: "og:title",
@@ -43,7 +43,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Create professional e-invoices in seconds. AI translation into 100+ languages, custom branding, USD & Riel currency support, QR payments, and instant PDF export.",
+          "Create professional invoices in seconds. Render them in English, Khmer, Chinese, Japanese or Korean, with USD and Riel formatting, QR payments and PDF export.",
       },
       { property: "og:url", content: SITE_URL },
     ],
@@ -101,8 +101,8 @@ export const Route = createFileRoute("/")({
               },
               featureList: [
                 "Custom branding & logo upload",
-                "Multi-currency (USD & KHR Riel)",
-                "AI-powered translation (100+ languages)",
+                "Multi-currency (USD, KHR Riel, CNY, JPY, KRW)",
+                "Invoice rendering in English, Khmer, Chinese, Japanese and Korean",
                 "PDF & PNG export",
                 "Payment QR code embedding",
                 "Real-time invoice preview",
@@ -136,7 +136,7 @@ const features = [
     height: 1166,
     eyebrow: "AI Translation",
     heading: "Every invoice, translated instantly",
-    desc: "Flip any invoice into 100+ languages with one click — no manual retyping, no delays. Every translation keeps your formatting intact.",
+    desc: "Switch an invoice between English, Khmer, Chinese, Japanese and Korean in one click. Labels and the matching script font swap automatically; your layout stays put.",
     cta: "Explore AI translation",
   },
   {
@@ -154,7 +154,7 @@ const features = [
     height: 1167,
     eyebrow: "Multi-Currency",
     heading: "Built for real numbers, not just US dollars",
-    desc: "Native USD and Cambodian Riel (៛) formatting with correct symbol placement and decimal handling, built for how local businesses actually invoice.",
+    desc: "Native USD and Cambodian Riel (៛) formatting, plus Yuan, Yen and Won — correct symbol placement and decimal rules for each, built for how local businesses actually invoice.",
     cta: "Explore currencies",
   },
   {
