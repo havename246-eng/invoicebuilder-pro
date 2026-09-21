@@ -564,7 +564,13 @@ function Landing() {
           <div className="flex flex-col items-center gap-10 text-center md:flex-row md:items-start md:justify-between md:text-left">
             {/* Logo + copyright */}
             <div className="flex flex-col items-center gap-3 md:items-start">
-              <img src={logoLight} alt="InvoiceCraft" className="h-9 w-auto" width="92" height="40" />
+              <img
+                src={logoLight}
+                alt="InvoiceCraft logo — free online invoice maker"
+                className="h-9 w-auto"
+                width="92"
+                height="40"
+              />
               <p className="text-[13px] text-ink-subtext">
                 © {new Date().getFullYear()} InvoiceCraft. Crafted with care.
               </p>

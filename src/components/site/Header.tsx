@@ -99,15 +99,19 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
                 <img
                   ref={lightLogoRef}
                   src={logoLight}
-                  alt="InvoiceCraft — Free Invoice Generator"
+                  alt="InvoiceCraft logo — free online invoice maker"
                   className="absolute inset-0 h-10 w-[92px]"
                   width="92"
                   height="40"
                 />
+                {/* Same logo in the scrolled-state colourway, crossfaded over the
+                    one above. Decorative: the pair is one logo to a reader, and
+                    giving both alt text makes a screen reader announce it twice. */}
                 <img
                   ref={darkLogoRef}
                   src={logoDark}
-                  alt="InvoiceCraft — Free Invoice Generator"
+                  alt=""
+                  aria-hidden="true"
                   className="absolute inset-0 h-10 w-[92px]"
                   width="92"
                   height="40"
@@ -116,7 +120,7 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
             ) : (
               <img
                 src={logoDark}
-                alt="InvoiceCraft — Free Invoice Generator"
+                alt="InvoiceCraft logo — free online invoice maker"
                 className="h-10 w-[92px]"
                 width="92"
                 height="40"

@@ -25,7 +25,7 @@ export function AuthShell({
           <Link to="/" aria-label="InvoiceCraft home">
             <img
               src={logoDark}
-              alt="InvoiceCraft"
+              alt="InvoiceCraft logo — free online invoice maker"
               className="h-10 w-[92px]"
               width="92"
               height="40"
