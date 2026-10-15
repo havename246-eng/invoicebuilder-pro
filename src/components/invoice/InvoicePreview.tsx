@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import footerBanner from "@/assets/footer-invoice.svg";
 import {
   calcTotals,
@@ -21,11 +21,30 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
   const minHeightPx = paperPxHeight(data.paperSize);
 
   // Fit-to-container scaling so the true-size page is readable on every screen.
-  // Pure CSS, so the server-rendered first paint is already the right size —
-  // measuring in JS left the page at 100% until hydration, then shrank it.
-  // tan(atan2(a, b)) is a / b as a plain number: the only way CSS can divide
-  // one length by another. 100cqw is the wrapper's width (container-type).
-  const scale = `min(1, tan(atan2(100cqw, ${widthPx}px)))`;
+  // The first paint uses pure CSS, so the server-rendered page is already the
+  // right size in browsers that support it — measuring only in JS left the page
+  // at 100% until hydration, then shrank it. tan(atan2(a, b)) is a / b as a
+  // plain number: the only way CSS can divide one length by another. 100cqw is
+  // the wrapper's width (container-type).
+  //
+  // iOS Safari treats that expression as invalid and falls back to no scaling,
+  // leaving the page at full paper size. So once mounted, the measured ratio
+  // takes over everywhere; where the CSS worked it's the same number.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState<number | null>(null);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const available = el.clientWidth;
+      if (available > 0) setMeasured(Math.min(1, available / widthPx));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [widthPx]);
+  const scale = measured ?? `min(1, tan(atan2(100cqw, ${widthPx}px)))`;
 
   // Load the chosen Google Font on demand (advanced settings) and inject its <link> once.
   useEffect(() => {
@@ -40,7 +59,7 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
   }, [data.invoiceFont]);
 
   return (
-    <div className="w-full overflow-hidden" style={{ containerType: "inline-size" }}>
+    <div ref={wrapRef} className="w-full overflow-hidden" style={{ containerType: "inline-size" }}>
       <div
         style={{
           width: `calc(${widthPx}px * ${scale})`,
