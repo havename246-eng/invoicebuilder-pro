@@ -24,6 +24,7 @@
 
 ## Common questions
 - [FAQ](https://www.invoicecraft.site/faq): answers on pricing, Khmer invoices, Riel, VAT, QR payments and data privacy
+- [About](https://www.invoicecraft.site/about): who InvoiceCraft is for, why it was built in Phnom Penh, and what it does
 
 ## Legal
 - [Privacy Notice](https://www.invoicecraft.site/privacy)
