@@ -69,6 +69,15 @@
   --color-lime-900: var(--lime-900);
   --color-lime-950: var(--lime-950);
   --color-accent-lime: var(--accent-lime);
+
+  /* One drop shadow site-wide: every size of Tailwind's scale maps to it. */
+  --shadow-xs: var(--shadow-soft);
+  --shadow-sm: var(--shadow-soft);
+  --shadow: var(--shadow-soft);
+  --shadow-md: var(--shadow-soft);
+  --shadow-lg: var(--shadow-soft);
+  --shadow-xl: var(--shadow-soft);
+  --shadow-2xl: var(--shadow-soft);
 }
 
 :root {
@@ -142,9 +151,10 @@
   --ring: var(--blue-900);
 
   /* Shadows — subtle, no color */
-  --shadow-card: 0 2px 16px rgba(0,0,0,0.06);
-  --shadow-card-hover: 0 2px 12px rgba(0,0,0,0.06);
-  --shadow-elegant: 0 2px 16px rgba(0,0,0,0.06);
+  --shadow-soft: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+  --shadow-card: var(--shadow-soft);
+  --shadow-card-hover: var(--shadow-soft);
+  --shadow-elegant: var(--shadow-soft);
 
   /* Transitions */
   --transition-smooth: all 150ms ease;

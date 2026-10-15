@@ -10,8 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SiteHeader } from "@/components/site/Header";
-// PRICING-HIDDEN: restore this import together with the <PricingSection /> render below.
-// import { PricingSection } from "@/components/site/Pricing";
+import { PricingSection } from "@/components/site/Pricing";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
 import { trackEvent } from "@/lib/analytics";
@@ -367,7 +366,7 @@ function Landing() {
                 <Button
                   asChild
                   size="lg"
-                  className="h-12 rounded-full bg-accent-lime px-9 text-base text-blue-950 hover:bg-accent-lime/90"
+                  className="h-12 rounded-full bg-accent-lime px-9 shadow-none text-base text-blue-950 hover:bg-accent-lime/90"
                 >
                   <Link to="/builder" onClick={() => trackEvent("cta_click", { location: "hero" })}>
                     Create your invoice for Free
@@ -377,7 +376,7 @@ function Landing() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="h-12 rounded-full border-ink-border/40 bg-transparent px-9 text-base text-white hover:bg-white/10"
+                  className="h-12 rounded-full border-ink-border/40 bg-transparent px-9 shadow-none text-base text-white hover:bg-white/10"
                 >
                   <a href="#features">Explore features</a>
                 </Button>
@@ -389,15 +388,15 @@ function Landing() {
               <div className="px-6 pb-16 pt-2 sm:pb-24">
                 <div className="group relative mx-auto aspect-[7/10] w-4/5 max-w-sm sm:w-full">
                   {/* Left — midnight */}
-                  <div className="absolute inset-x-0 top-0 origin-bottom -translate-x-6 -rotate-6 overflow-hidden rounded-lg shadow-xl transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:-translate-x-14 sm:rotate-[-8deg] sm:group-hover:-translate-x-28 sm:group-hover:rotate-[-14deg]">
+                  <div className="absolute inset-x-0 top-0 origin-bottom -translate-x-6 -rotate-6 overflow-hidden rounded-lg transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:-translate-x-14 sm:rotate-[-8deg] sm:group-hover:-translate-x-28 sm:group-hover:rotate-[-14deg]">
                     <InvoicePreview data={sampleMidnight} />
                   </div>
                   {/* Right — lime */}
-                  <div className="absolute inset-x-0 top-0 origin-bottom translate-x-6 rotate-6 overflow-hidden rounded-lg shadow-xl transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:translate-x-14 sm:rotate-[8deg] sm:group-hover:translate-x-28 sm:group-hover:rotate-[14deg]">
+                  <div className="absolute inset-x-0 top-0 origin-bottom translate-x-6 rotate-6 overflow-hidden rounded-lg transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:translate-x-14 sm:rotate-[8deg] sm:group-hover:translate-x-28 sm:group-hover:rotate-[14deg]">
                     <InvoicePreview data={sampleEmerald} />
                   </div>
                   {/* Front — classic */}
-                  <div className="absolute inset-x-0 top-0 overflow-hidden rounded-lg shadow-xl transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:group-hover:-translate-y-2">
+                  <div className="absolute inset-x-0 top-0 overflow-hidden rounded-lg transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] sm:group-hover:-translate-y-2">
                     <InvoicePreview data={sample} />
                   </div>
                 </div>
@@ -460,7 +459,7 @@ function Landing() {
                     <Button
                       asChild
                       size="lg"
-                      className="mt-6 rounded-full bg-blue-900 px-6 text-white hover:bg-blue-900/90"
+                      className="mt-6 rounded-full bg-blue-900 px-6 shadow-none text-white hover:bg-blue-900/90"
                     >
                       <Link to="/builder">{f.cta}</Link>
                     </Button>
@@ -534,10 +533,32 @@ function Landing() {
           </div>
         </section>
 
-        {/* PRICING-HIDDEN: hidden until payment integration lands. The component in
-            components/site/Pricing.tsx is untouched — uncomment this and its import
-            to bring the section back. */}
-        {/* <PricingSection /> */}
+        <PricingSection />
+
+        {/* About teaser. Deliberately short: the full story lives on /about,
+            and repeating it here would put the same copy on two URLs. */}
+        <section className="bg-surface py-16 md:py-20" aria-labelledby="about-heading">
+          <div className="reveal-group container mx-auto max-w-3xl px-4 text-center sm:px-6">
+            <p className="reveal-item eyebrow">About us</p>
+            <h2
+              id="about-heading"
+              className="reveal-item mt-3 text-[28px] font-bold text-foreground md:text-[36px]"
+            >
+              Made in Phnom Penh, for small businesses in Cambodia
+            </h2>
+            <p className="reveal-item mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+              Most invoice tools work in one language and one currency. Here, people bill in dollars
+              and Riel, send invoices over Telegram, and get paid through banking apps like ABA or
+              ACLEDA. We built InvoiceCraft to fit that, so you spend less time on paperwork and
+              more time getting paid.
+            </p>
+            <p className="reveal-item mt-6 text-[15px]">
+              <Link to="/about" className="font-semibold text-blue-900 underline underline-offset-4">
+                Read our story
+              </Link>
+            </p>
+          </div>
+        </section>
 
         {/* CTA */}
         <section className="bg-ink-canvas py-12 md:py-16">
@@ -551,7 +572,7 @@ function Landing() {
             <Button
               asChild
               size="lg"
-              className="mt-8 rounded-full bg-white px-8 text-blue-900 hover:bg-white/90"
+              className="mt-8 rounded-full bg-white px-8 shadow-none text-blue-900 hover:bg-white/90"
             >
               <Link to="/builder">Open the builder</Link>
             </Button>
@@ -594,10 +615,12 @@ function Landing() {
                 <Link to="/faq" className="text-ink-subtext transition-smooth hover:text-white">
                   FAQ
                 </Link>
-                {/* PRICING-HIDDEN: restore alongside the nav links in Header.tsx. */}
-                {/* <a href="#pricing" className="text-ink-subtext transition-smooth hover:text-white">
+                <Link to="/about" className="text-ink-subtext transition-smooth hover:text-white">
+                  About
+                </Link>
+                <a href="#pricing" className="text-ink-subtext transition-smooth hover:text-white">
                   Pricing
-                </a> */}
+                </a>
               </nav>
             </div>
 

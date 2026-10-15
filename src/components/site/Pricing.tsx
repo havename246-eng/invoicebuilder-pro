@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouteContext } from "@tanstack/react-router";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,8 @@ const proFeatures = [
   { title: "No InvoiceCraft label", desc: "clean, white-label invoices" },
   { title: "Custom header branding", desc: "your logo and business identity at the top" },
   { title: "Custom footer branding", desc: "your own tagline, message, or brand mark at the bottom" },
+  { title: "Custom font", desc: "set your invoices in the typeface that matches your brand" },
+  { title: "Multiple invoice themes", desc: "pick the design that fits your brand" },
 ];
 
 export function PricingSection() {
@@ -72,7 +74,7 @@ export function PricingSection() {
 
         <div className="reveal-group mx-auto mt-12 grid max-w-4xl items-stretch gap-6 md:mt-16 md:grid-cols-2">
           {/* Free */}
-          <div className="reveal-item flex flex-col rounded-2xl bg-surface p-6 shadow-card transition-smooth hover:-translate-y-0.5 hover:shadow-lg sm:p-8">
+          <div className="reveal-item flex flex-col rounded-2xl bg-surface p-6 shadow-card sm:p-8">
             <h3 className="text-lg font-bold text-foreground">Free</h3>
             <p className="mt-1 text-sm text-muted-foreground">Everything you need to invoice today</p>
 
@@ -108,36 +110,45 @@ export function PricingSection() {
           </div>
 
           {/* Pro */}
-          <div className="reveal-item relative flex flex-col rounded-2xl bg-ink-canvas p-6 shadow-card transition-smooth hover:-translate-y-0.5 hover:shadow-xl sm:p-8">
-            <span className="absolute -top-3.5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-accent-lime px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-blue-950">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              Recommended
+          <div className="reveal-item flex flex-col rounded-2xl bg-white p-6 shadow-card sm:p-8">
+            <span className="mb-3 self-start whitespace-nowrap rounded-full bg-accent-lime px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-blue-950">
+              Best value
             </span>
 
-            <h3 className="text-lg font-bold text-white">Pro</h3>
-            <p className="mt-1 text-sm text-ink-subtext">Make every invoice 100% yours</p>
+            <h3 className="text-lg font-bold text-foreground">Pro</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Make every invoice 100% yours</p>
 
             <div className="mt-6">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[40px] font-bold leading-none text-white">
+                <span className="text-[40px] font-bold leading-none text-foreground">
                   {yearly ? "$39" : "$4.99"}
                 </span>
-                <span className="text-sm text-ink-subtext">{yearly ? "/ year" : "/ month"}</span>
+                <span className="text-sm text-muted-foreground">
+                  {yearly ? "/ year" : "/ month"}
+                </span>
               </div>
-              <p className="mt-2 text-[13px] text-ink-subtext">
+              <p className="mt-2 text-[13px] text-muted-foreground">
                 {yearly ? "That's about $3.25/mo — save 35%" : "Or $39/yr and save 35%"}
+              </p>
+              {/* Price anchoring: frame the monthly cost as an everyday purchase
+                  rather than a software subscription. Yearly works out to about
+                  $3.25/mo, so it's "less than" rather than "about the same". */}
+              <p className="mt-4 inline-block rounded-lg bg-blue-50 px-3 py-2 text-[13px] font-bold text-blue-900">
+                {yearly
+                  ? "Less than two iced lattes a month"
+                  : "About the price of two iced lattes a month"}
               </p>
             </div>
 
-            <p className="mt-8 text-sm font-semibold text-white">Everything in Free, plus:</p>
+            <p className="mt-8 text-sm font-semibold text-foreground">Everything in Free, plus:</p>
             <ul className="mt-3.5 flex flex-col gap-3.5 text-sm">
               {proFeatures.map((f) => (
                 <li key={f.title} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-lime/15">
-                    <Check className="h-3 w-3 text-accent-lime" aria-hidden="true" />
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                    <Check className="h-3 w-3 text-blue-900" aria-hidden="true" />
                   </span>
-                  <span className="text-ink-subtext">
-                    <strong className="font-semibold text-white">{f.title}</strong> — {f.desc}
+                  <span className="text-muted-foreground">
+                    <strong className="font-semibold text-foreground">{f.title}</strong> — {f.desc}
                   </span>
                 </li>
               ))}
@@ -147,7 +158,7 @@ export function PricingSection() {
               <Button
                 asChild
                 size="lg"
-                className="w-full rounded-full bg-accent-lime text-blue-950 hover:bg-accent-lime/90"
+                className="w-full rounded-full bg-blue-900 text-white hover:bg-blue-900/90"
               >
                 {/* Upgrading starts with an account. Someone already signed in
                     has no signup step left, so send them to their dashboard. */}
@@ -159,7 +170,7 @@ export function PricingSection() {
                   </Link>
                 )}
               </Button>
-              <p className="mt-3 text-center text-xs text-ink-subtext">Cancel anytime.</p>
+              <p className="mt-3 text-center text-xs text-muted-foreground">Cancel anytime.</p>
             </div>
           </div>
         </div>
