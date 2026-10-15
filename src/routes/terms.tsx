@@ -13,6 +13,12 @@ export const Route = createFileRoute("/terms")({
         content:
           "The terms you agree to when using InvoiceCraft — what the tool does, what you're responsible for, and the limits of the service.",
       },
+      { property: "og:title", content: "Terms and Conditions | InvoiceCraft" },
+      {
+        property: "og:description",
+        content:
+          "The terms you agree to when using InvoiceCraft — what the tool does, what you're responsible for, and the limits of the service.",
+      },
       { property: "og:url", content: PAGE_URL },
     ],
     links: [{ rel: "canonical", href: PAGE_URL }],

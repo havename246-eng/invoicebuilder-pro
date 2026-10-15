@@ -8,6 +8,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { SiteHeader } from "@/components/site/Header";
 import { fetchUser, type AuthUser } from "@/lib/auth";
 import { trackOAuthReturnFromHash } from "@/lib/analytics";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -17,20 +18,23 @@ import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteHeader variant="light" />
+      <div className="flex flex-1 items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-7xl font-bold text-foreground">404</h1>
+          <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The page you're looking for doesn't exist or has been moved.
+          </p>
+          <div className="mt-6">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Go home
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -64,10 +68,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { property: "og:image", content: OG_IMAGE },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "InvoiceCraft — free online invoice maker" },
+      { property: "og:locale", content: "en_US" },
+      // No twitter:title/description: X falls back to og:title/og:description,
+      // which each route overrides. Root-level copies were never overridden, so
+      // every page shared the homepage's card text.
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "InvoiceCraft — Free Invoice Generator" },
-      { name: "twitter:description", content: "Create professional invoices in seconds. Custom branding, multi-currency, AI translation, and PDF export." },
       { name: "twitter:image", content: OG_IMAGE },
+      { name: "twitter:image:alt", content: "InvoiceCraft — free online invoice maker" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

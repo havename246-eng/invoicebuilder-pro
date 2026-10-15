@@ -12,6 +12,11 @@ export const Route = createFileRoute("/privacy")({
         name: "description",
         content: "How InvoiceCraft handles your data — no accounts, no server-side storage, invoices stay on your device.",
       },
+      { property: "og:title", content: "Privacy Notice | InvoiceCraft" },
+      {
+        property: "og:description",
+        content: "How InvoiceCraft handles your data — no accounts, no server-side storage, invoices stay on your device.",
+      },
       { property: "og:url", content: PAGE_URL },
     ],
     links: [{ rel: "canonical", href: PAGE_URL }],

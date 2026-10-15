@@ -12,6 +12,11 @@ export const Route = createFileRoute("/cookies")({
         name: "description",
         content: "InvoiceCraft doesn't use tracking or advertising cookies — here's what we actually store.",
       },
+      { property: "og:title", content: "Cookie Policy | InvoiceCraft" },
+      {
+        property: "og:description",
+        content: "InvoiceCraft doesn't use tracking or advertising cookies — here's what we actually store.",
+      },
       { property: "og:url", content: PAGE_URL },
     ],
     links: [{ rel: "canonical", href: PAGE_URL }],
