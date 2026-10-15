@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import footerBanner from "@/assets/footer-invoice.svg";
 import {
   calcTotals,
@@ -20,9 +20,12 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
   const widthPx = paperPxWidth(data.paperSize);
   const minHeightPx = paperPxHeight(data.paperSize);
 
-  // Fit-to-container scaling so the true-size A4 page is readable on every screen.
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  // Fit-to-container scaling so the true-size page is readable on every screen.
+  // Pure CSS, so the server-rendered first paint is already the right size —
+  // measuring in JS left the page at 100% until hydration, then shrank it.
+  // tan(atan2(a, b)) is a / b as a plain number: the only way CSS can divide
+  // one length by another. 100cqw is the wrapper's width (container-type).
+  const scale = `min(1, tan(atan2(100cqw, ${widthPx}px)))`;
 
   // Load the chosen Google Font on demand (advanced settings) and inject its <link> once.
   useEffect(() => {
@@ -36,30 +39,12 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
     document.head.appendChild(link);
   }, [data.invoiceFont]);
 
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const update = () => {
-      const available = el.clientWidth;
-      const next = Math.min(1, available / widthPx);
-      setScale(next > 0 ? next : 1);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    window.addEventListener("resize", update);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, [widthPx]);
-
   return (
-    <div ref={wrapRef} className="w-full overflow-hidden">
+    <div className="w-full overflow-hidden" style={{ containerType: "inline-size" }}>
       <div
         style={{
-          width: `${widthPx * scale}px`,
-          height: `${minHeightPx * scale}px`,
+          width: `calc(${widthPx}px * ${scale})`,
+          height: `calc(${minHeightPx}px * ${scale})`,
           marginInline: "auto",
         }}
       >

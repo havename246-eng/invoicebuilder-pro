@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Download, FileImage, FileText, Loader2, Send } from "lucide-react";
+import { Check, Download, FileImage, FileText, Loader2 } from "lucide-react";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,8 +8,15 @@ import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
+import { TelegramLogo } from "@/components/invoice/TelegramLogo";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
-import { buildInvoiceFile, downloadInvoiceFile, hapticBuzz } from "@/lib/export";
+import {
+  buildInvoiceFile,
+  canSaveToPhotos,
+  downloadInvoiceFile,
+  hapticBuzz,
+  saveToPhotos,
+} from "@/lib/export";
 import {
   openTab,
   sendInvoiceToTelegram,
@@ -48,12 +55,15 @@ function Builder() {
   const [exportType, setExportType] = useState<"png" | "pdf">("pdf");
   // The Telegram file, rendered ahead of time — see the pre-generation effect.
   // Carries its format so a toggle change can never send the wrong one.
-  const [shareFile, setShareFile] = useState<{ blob: Blob; format: ShareFormat } | null>(null);
+  const [shareFile, setShareFile] = useState<{ file: File; format: ShareFormat } | null>(null);
   const [preparingShare, setPreparingShare] = useState(false);
   const highlightRef = useRef<HTMLDivElement>(null);
   const pngBtnRef = useRef<HTMLButtonElement>(null);
   const pdfBtnRef = useRef<HTMLButtonElement>(null);
   const mountedRef = useRef(false);
+  // Until GSAP has placed the sliding highlight, the selected format button
+  // draws its own pill, so the toggle doesn't load empty and then pop in.
+  const [highlightPlaced, setHighlightPlaced] = useState(false);
   const progressFillRef = useRef<HTMLSpanElement>(null);
   const checkRef = useRef<SVGSVGElement>(null);
   const createdReportedRef = useRef(false);
@@ -102,6 +112,7 @@ function Builder() {
     if (!mountedRef.current) {
       gsap.set(highlight, vars);
       mountedRef.current = true;
+      setHighlightPlaced(true);
     } else {
       gsap.to(highlight, { ...vars, duration: 0.35, ease: "power3.out" });
     }
@@ -151,14 +162,51 @@ function Builder() {
       return;
     }
     hapticBuzz();
+
+    // iPhone/iPad: hand the pre-rendered PNG to the share sheet, whose "Save
+    // Image" puts it in Photos. Must happen before any await (see saveToPhotos).
+    const ready = shareFile?.format === "png" ? shareFile.file : null;
+    if (kind === "png" && ready && canSaveToPhotos(ready)) {
+      try {
+        if (await saveToPhotos(ready)) {
+          trackEvent("invoice_downloaded", { format: kind, method: "photos" });
+        }
+        return;
+      } catch (e) {
+        // Safari refused the share (e.g. activation expired) — render and offer it below.
+        console.warn("[export] share sheet unavailable", e);
+      }
+    }
+
     setExporting(kind);
     setExportProgress(0);
     setExportDone(false);
     const tId = toast.loading(kind === "png" ? "Generating PNG…" : "Generating PDF…");
     try {
-      downloadInvoiceFile(await generateInvoiceFile(kind, setExportProgress));
-      toast.success(kind === "png" ? "PNG downloaded" : "PDF downloaded", { id: tId });
-      trackEvent("invoice_downloaded", { format: kind });
+      const file = await generateInvoiceFile(kind, setExportProgress);
+      if (canSaveToPhotos(file)) {
+        // The tap's activation is spent by the render; this button is a fresh tap.
+        toast.success("PNG ready", {
+          id: tId,
+          description: "Tap Save to Photos, then choose “Save Image”.",
+          action: {
+            label: "Save to Photos",
+            onClick: () => void saveToPhotos(file).catch(() => downloadInvoiceFile(file)),
+          },
+          duration: 15000,
+        });
+        trackEvent("invoice_downloaded", { format: kind, method: "photos_prompt" });
+      } else {
+        downloadInvoiceFile(file);
+        toast.success(kind === "png" ? "PNG downloaded" : "PDF downloaded", {
+          id: tId,
+          description:
+            kind === "png" && /Android/i.test(navigator.userAgent)
+              ? "Find it in your Gallery or Google Photos under Downloads."
+              : undefined,
+        });
+        trackEvent("invoice_downloaded", { format: kind });
+      }
       setExportDone(true);
       await new Promise((r) => setTimeout(r, 1300));
     } catch (e) {
@@ -204,8 +252,8 @@ function Builder() {
       try {
         // No progress callback: this runs silently and must not drive the
         // Export button's progress fill.
-        const blob = await generateInvoiceFile(exportType);
-        if (!cancelled) setShareFile({ blob, format: exportType });
+        const file = await generateInvoiceFile(exportType);
+        if (!cancelled) setShareFile({ file, format: exportType });
       } catch (e) {
         if (!cancelled) console.error("[telegram-prepare]", e);
       } finally {
@@ -235,9 +283,7 @@ function Builder() {
     }
     const message = tg.message(data.invoiceNumber);
     const { method, fileName, opened } = await sendInvoiceToTelegram({
-      blob: shareFile.blob,
-      format: shareFile.format,
-      invoiceNo: data.invoiceNumber,
+      file: shareFile.file,
       message,
     });
     if (method === "cancelled") return;
@@ -299,6 +345,7 @@ function Builder() {
               className={cn(
                 "relative z-10 flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-smooth sm:gap-2 sm:px-5 sm:py-3 sm:text-base",
                 exportType === "png" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                exportType === "png" && !highlightPlaced && "bg-white shadow-sm",
               )}
             >
               <FileImage className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -311,29 +358,30 @@ function Builder() {
               className={cn(
                 "relative z-10 flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-smooth sm:gap-2 sm:px-5 sm:py-3 sm:text-base",
                 exportType === "pdf" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                exportType === "pdf" && !highlightPlaced && "bg-white shadow-sm",
               )}
             >
               <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">PDF</span>
             </button>
           </div>
-          {/* Secondary to Export: lime is reserved for the one primary CTA. */}
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-auto shrink-0 justify-center rounded-full border-border px-3 py-2 text-sm text-foreground hover:bg-muted sm:px-5 sm:py-3 sm:text-base"
+          {/* Icon-only on every screen size: the Telegram mark is the label. */}
+          <button
+            type="button"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-smooth hover:scale-105 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:h-12 sm:w-12"
             disabled={!!exporting || preparingShare || !shareFile}
             onClick={handleTelegramShare}
             aria-label={preparingShare ? tg.preparing : tg.sendViaTelegram}
+            title={tg.sendViaTelegram}
             aria-busy={preparingShare}
           >
-            {preparingShare ? (
-              <Loader2 className="h-4 w-4 animate-spin sm:mr-2 sm:h-5 sm:w-5" aria-hidden="true" />
-            ) : (
-              <Send className="h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" aria-hidden="true" />
+            <TelegramLogo className="h-full w-full" />
+            {preparingShare && (
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-[#229ED9]">
+                <Loader2 className="h-4 w-4 animate-spin text-white sm:h-5 sm:w-5" aria-hidden="true" />
+              </span>
             )}
-            <span className="hidden sm:inline">{tg.sendViaTelegram}</span>
-          </Button>
+          </button>
           <Button
             size="lg"
             className="relative h-auto w-[92px] justify-center overflow-hidden rounded-full bg-accent-lime px-4 py-2 text-sm text-blue-950 hover:bg-accent-lime/90 sm:w-[148px] sm:px-7 sm:py-3 sm:text-base"

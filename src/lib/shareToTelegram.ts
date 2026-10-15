@@ -12,11 +12,6 @@ export type ShareFormat = "pdf" | "png";
  */
 export type TelegramMethod = "share_sheet" | "clipboard" | "download" | "cancelled";
 
-const MIME: Record<ShareFormat, string> = {
-  pdf: "application/pdf",
-  png: "image/png",
-};
-
 /**
  * Send the invoice file to Telegram without uploading it anywhere.
  *
@@ -24,30 +19,26 @@ const MIME: Record<ShareFormat, string> = {
  * file. The browser has exactly two ways to hand a local file to another app:
  *
  * - Phones: the Web Share API. The system sheet lists Telegram, and picking it
- *   opens Telegram's chat picker with the file already attached, named after
- *   the invoice number. Needs HTTPS — on plain http the browser has no file
+ *   opens Telegram's chat picker with the file already attached; its name
+ *   carries the invoice number, client and date. Needs HTTPS — on plain http the browser has no file
  *   sharing, and this falls back to the text-only link plus a download.
  * - Computers: the clipboard, for PNG. Telegram Web opens and Ctrl/⌘+V in the
  *   chat attaches the image. PDFs can't go on the clipboard, so they download.
  *
  * SAFARI: share() and clipboard.write() are only allowed during the tap, so the
  * file must already be rendered and both are called before the first await.
- * `onBlocked` is called when the pop-up blocker refuses Telegram Web after the
- * clipboard step, so the caller can offer a button that opens it on a new tap.
+ * `opened` is false when a pop-up blocker refused Telegram Web, so the caller
+ * can offer a button that opens it on a new tap.
  */
 export async function sendInvoiceToTelegram({
-  blob,
-  format,
-  invoiceNo,
+  file,
   message,
 }: {
-  blob: Blob;
-  format: ShareFormat;
-  invoiceNo: string;
+  /** Already named by invoiceFilename(), the same name Export downloads. */
+  file: File;
   message: string;
 }): Promise<{ method: TelegramMethod; fileName: string; opened: boolean }> {
-  const fileName = `${safeName(invoiceNo)}.${format}`;
-  const file = new File([blob], fileName, { type: MIME[format] });
+  const fileName = file.name;
 
   if (isPhoneOrTablet() && navigator.canShare?.({ files: [file] })) {
     try {
@@ -64,9 +55,9 @@ export async function sendInvoiceToTelegram({
 
   const href = telegramLink(message);
 
-  if (format === "png" && !isPhoneOrTablet() && canCopyImage()) {
+  if (file.type === "image/png" && !isPhoneOrTablet() && canCopyImage()) {
     try {
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": file })]);
       // Opened after the copy: a new tab takes focus, and Chrome refuses
       // clipboard writes from a page that isn't focused.
       return { method: "clipboard", fileName, opened: openTab(href) };
@@ -114,11 +105,6 @@ function canCopyImage() {
 /** A coarse primary pointer: phones and tablets, where Telegram is an app. */
 function isPhoneOrTablet() {
   return window.matchMedia?.("(pointer: coarse)").matches ?? false;
-}
-
-/** Invoice numbers are user-typed; keep the filename to characters every OS accepts. */
-function safeName(s: string) {
-  return (s || "invoice").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "") || "invoice";
 }
 
 const pasteKey = () => (/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘V" : "Ctrl+V");

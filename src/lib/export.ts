@@ -12,11 +12,14 @@ import {
 // Height/width of assets/footer-invoice.svg's viewBox.
 const BRAND_FOOTER_ASPECT = 10.49 / 269.94;
 
+// Letters in any script (Khmer client names included), digits and hyphens;
+// everything else — spaces, slashes, punctuation — collapses to "_".
 const safe = (s: string) =>
-  (s || "invoice")
-    .replace(/[^\w-]+/g, "_")
+  s
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{M}\p{N}-]+/gu, "_")
     .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "") || "invoice";
+    .replace(/^_|_$/g, "");
 
 /**
  * Render the invoice into a PNG data URL. We clone into an off-screen sandbox
@@ -336,16 +339,24 @@ function triggerDownload(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-const invoiceFilename = (data: InvoiceData, ext: "png" | "pdf") =>
-  `${safe(data.invoiceNumber)}_${safe(data.clientName)}.${ext}`;
+/**
+ * INV-{Number}_{Client}_{DD-MM-YYYY}.pdf, e.g. INV-0001_Sokha_Trading_15-10-2026.pdf.
+ * "INV-" isn't doubled when the number already starts with it, and an empty
+ * client or issue date drops its part rather than leaving a stray "_".
+ */
+export function invoiceFilename(data: InvoiceData, ext: "png" | "pdf") {
+  const number = safe(data.invoiceNumber).replace(/^INV-?/i, "") || "0001";
+  const [y, m, d] = data.issueDate.split("-");
+  const date = y && m && d ? `${d}-${m}-${y}` : "";
+  return [`INV-${number}`, safe(data.clientName), date].filter(Boolean).join("_") + `.${ext}`;
+}
 
 /**
  * Render the invoice and hand it back as a File instead of downloading it.
  *
  * Sharing needs the bytes in memory — navigator.share() takes File objects —
  * whereas exporting only ever needed them on their way to a download. Both
- * paths run the same render, so this is where it lives and exportPNG/exportPDF
- * are thin wrappers that download what it returns.
+ * paths run this same render.
  */
 export async function buildInvoiceFile(
   el: HTMLElement,
@@ -364,6 +375,33 @@ export async function buildInvoiceFile(
 /** Save a file the browser already holds — same download path as an export. */
 export function downloadInvoiceFile(file: File) {
   triggerDownload(file, file.name);
+}
+
+/**
+ * A downloaded PNG lands in Files on iOS, not Photos. The only way a web page
+ * can reach the Photos library there is the share sheet, whose "Save Image"
+ * row saves straight into Photos. Android needs none of this: images
+ * downloaded to Downloads already show up in Gallery and Google Photos.
+ */
+export function canSaveToPhotos(file: File) {
+  return isIOS() && file.type === "image/png" && !!navigator.canShare?.({ files: [file] });
+}
+
+/**
+ * Opens the share sheet with the PNG. Returns false if the user dismissed it.
+ *
+ * SAFARI: share() is only allowed during the tap, so this must be called
+ * before the click handler's first await, with a file that already exists.
+ */
+export async function saveToPhotos(file: File): Promise<boolean> {
+  try {
+    await navigator.share({ files: [file] });
+    hapticBuzz();
+    return true;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return false;
+    throw e;
+  }
 }
 
 async function renderPNGBlob(

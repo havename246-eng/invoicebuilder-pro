@@ -23,6 +23,38 @@ import { trackEvent } from "@/lib/analytics";
 
 const DEFAULT_FONT_VALUE = "__default__";
 
+// Option labels, also passed to <SelectValue> as its text. Radix only learns an
+// option's label once the dropdown's items have mounted in the browser, so a
+// bare <SelectValue /> renders empty on the server and the field pops into
+// place after load, nudging the whole form.
+const LANGUAGE_LABELS: Record<InvoiceLanguage, string> = {
+  en: "English",
+  km: "ខ្មែរ (Khmer)",
+  zh: "中文 (Chinese)",
+  ja: "日本語 (Japanese)",
+  ko: "한국어 (Korean)",
+};
+const PAPER_LABELS: Record<PaperSize, string> = {
+  A4: "A4 (210 × 297 mm)",
+  Letter: "Letter (8.5 × 11 in)",
+  A5: "A5 (148 × 210 mm)",
+  Legal: "Legal (8.5 × 14 in)",
+};
+const STATUS_LABELS: Record<InvoiceStatus, string> = {
+  draft: "Draft",
+  unpaid: "Unpaid",
+  partial: "Partial",
+  paid: "Paid",
+  void: "Void",
+};
+const CURRENCY_LABELS: Record<Currency, string> = {
+  USD: "USD ($)",
+  KHR: "Riel (៛)",
+  CNY: "Yuan (CN¥)",
+  JPY: "Yen (¥)",
+  KRW: "Won (₩)",
+};
+
 const BANKS = ["ACLEDA Bank", "ABA Bank", "Vattanac Bank", "Canadia Bank", "Wing Bank"];
 const CUSTOM_BANK_VALUE = "__custom__";
 
@@ -70,24 +102,29 @@ export function InvoiceForm({ data, onChange }: Props) {
                 trackEvent("invoice_translated", { language });
               }}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{LANGUAGE_LABELS[data.language]}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="km">ខ្មែរ (Khmer)</SelectItem>
-                <SelectItem value="zh">中文 (Chinese)</SelectItem>
-                <SelectItem value="ja">日本語 (Japanese)</SelectItem>
-                <SelectItem value="ko">한국어 (Korean)</SelectItem>
+                {Object.entries(LANGUAGE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
           <Field label="Paper size">
             <Select value={data.paperSize} onValueChange={(v) => update("paperSize", v as PaperSize)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{PAPER_LABELS[data.paperSize]}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="A4">A4 (210 × 297 mm)</SelectItem>
-                <SelectItem value="Letter">Letter (8.5 × 11 in)</SelectItem>
-                <SelectItem value="A5">A5 (148 × 210 mm)</SelectItem>
-                <SelectItem value="Legal">Legal (8.5 × 14 in)</SelectItem>
+                {Object.entries(PAPER_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
@@ -164,25 +201,29 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
           <Field label="Status">
             <Select value={data.status} onValueChange={(v) => update("status", v as InvoiceStatus)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{STATUS_LABELS[data.status]}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
-                <SelectItem value="partial">Partial</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="void">Void</SelectItem>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
           <Field label="Currency">
             <Select value={data.currency} onValueChange={(v) => update("currency", v as Currency)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{CURRENCY_LABELS[data.currency]}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USD">USD ($)</SelectItem>
-                <SelectItem value="KHR">Riel (៛)</SelectItem>
-                <SelectItem value="CNY">Yuan (CN¥)</SelectItem>
-                <SelectItem value="JPY">Yen (¥)</SelectItem>
-                <SelectItem value="KRW">Won (₩)</SelectItem>
+                {Object.entries(CURRENCY_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
@@ -276,7 +317,9 @@ export function InvoiceForm({ data, onChange }: Props) {
               value={data.invoiceFont ?? DEFAULT_FONT_VALUE}
               onValueChange={(v) => update("invoiceFont", v === DEFAULT_FONT_VALUE ? null : (v as GoogleFont))}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>{data.invoiceFont ?? "Default (Rethink Sans)"}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value={DEFAULT_FONT_VALUE}>Default (Rethink Sans)</SelectItem>
                 {GOOGLE_FONTS.map((font) => (
@@ -404,7 +447,12 @@ function BankNameField({ value, onChange }: { value: string; onChange: (v: strin
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`space-y-2 ${className ?? ""}`}>
+    // Radix Select server-renders a hidden native <select> after its trigger,
+    // which hydration removes. Until then space-y gives the trigger an 8px
+    // bottom margin, so cancel it while that hidden select is the last child.
+    <div
+      className={`space-y-2 [&>:has(+select[aria-hidden]:last-child)]:mb-0 ${className ?? ""}`}
+    >
       <Label className="eyebrow">{label}</Label>
       {children}
     </div>
