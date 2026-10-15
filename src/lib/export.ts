@@ -336,18 +336,52 @@ function triggerDownload(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export async function exportPNG(el: HTMLElement, data: InvoiceData, onProgress?: OnProgress) {
+const invoiceFilename = (data: InvoiceData, ext: "png" | "pdf") =>
+  `${safe(data.invoiceNumber)}_${safe(data.clientName)}.${ext}`;
+
+/**
+ * Render the invoice and hand it back as a File instead of downloading it.
+ *
+ * Sharing needs the bytes in memory — navigator.share() takes File objects —
+ * whereas exporting only ever needed them on their way to a download. Both
+ * paths run the same render, so this is where it lives and exportPNG/exportPDF
+ * are thin wrappers that download what it returns.
+ */
+export async function buildInvoiceFile(
+  el: HTMLElement,
+  data: InvoiceData,
+  kind: "png" | "pdf",
+  onProgress?: OnProgress,
+): Promise<File> {
+  const blob =
+    kind === "png"
+      ? await renderPNGBlob(el, data, onProgress)
+      : await renderPDFBlob(el, data, onProgress);
+  onProgress?.(100);
+  return new File([blob], invoiceFilename(data, kind), { type: blob.type });
+}
+
+/** Save a file the browser already holds — same download path as an export. */
+export function downloadInvoiceFile(file: File) {
+  triggerDownload(file, file.name);
+}
+
+async function renderPNGBlob(
+  el: HTMLElement,
+  data: InvoiceData,
+  onProgress?: OnProgress,
+): Promise<Blob> {
   const bg = THEMES[data.theme].bg;
   const dataUrl = await renderDataUrl(el, data.paperSize, bg, onProgress);
   onProgress?.(95);
-  triggerDownload(
-    dataUrlToBlob(dataUrl),
-    `${safe(data.invoiceNumber)}_${safe(data.clientName)}.png`,
-  );
-  onProgress?.(100);
+  return dataUrlToBlob(dataUrl);
 }
 
-export async function exportPDF(el: HTMLElement, data: InvoiceData, onProgress?: OnProgress) {
+async function renderPDFBlob(
+  el: HTMLElement,
+  data: InvoiceData,
+  onProgress?: OnProgress,
+): Promise<Blob> {
   const bg = THEMES[data.theme].bg;
   const paperSize = data.paperSize;
   // If the strip can't be rasterized, fall back to leaving it inside the sheet
@@ -406,6 +440,5 @@ export async function exportPDF(el: HTMLElement, data: InvoiceData, onProgress?:
   }
   onProgress?.(98);
 
-  triggerDownload(pdf.output("blob"), `${safe(data.invoiceNumber)}_${safe(data.clientName)}.pdf`);
-  onProgress?.(100);
+  return pdf.output("blob");
 }

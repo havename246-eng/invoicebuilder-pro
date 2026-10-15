@@ -315,7 +315,8 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
 
         {/* Brand footer strip — pinned to the bottom edge of the sheet. The PDF
             export removes it from the capture and stamps it onto every page
-            instead (see exportPDF), keyed off this data attribute. */}
+            instead (see renderPDFBlob in lib/export.ts), keyed off this data
+            attribute. */}
         <img
           src={footerBanner}
           alt=""

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { Check, Download, FileImage, FileText } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, Download, FileImage, FileText, Loader2, Send } from "lucide-react";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,14 @@ import { SiteHeader } from "@/components/site/Header";
 import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
-import { exportPDF, exportPNG, hapticBuzz } from "@/lib/export";
+import { buildInvoiceFile, downloadInvoiceFile, hapticBuzz } from "@/lib/export";
+import {
+  openTab,
+  sendInvoiceToTelegram,
+  telegramLink,
+  telegramStrings,
+  type ShareFormat,
+} from "@/lib/shareToTelegram";
 import { trackEvent } from "@/lib/analytics";
 import { absoluteUrl } from "@/lib/site-url";
 
@@ -39,6 +46,10 @@ function Builder() {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportDone, setExportDone] = useState(false);
   const [exportType, setExportType] = useState<"png" | "pdf">("pdf");
+  // The Telegram file, rendered ahead of time — see the pre-generation effect.
+  // Carries its format so a toggle change can never send the wrong one.
+  const [shareFile, setShareFile] = useState<{ blob: Blob; format: ShareFormat } | null>(null);
+  const [preparingShare, setPreparingShare] = useState(false);
   const highlightRef = useRef<HTMLDivElement>(null);
   const pngBtnRef = useRef<HTMLButtonElement>(null);
   const pdfBtnRef = useRef<HTMLButtonElement>(null);
@@ -120,9 +131,22 @@ function Builder() {
     } catch {}
   }, [data]);
 
+  /**
+   * The one render path for the invoice file. Export downloads what it returns
+   * and the Telegram action shares it, so both always produce identical output.
+   * Returns a File — a Blob subclass — so Export keeps its usual filename.
+   */
+  const generateInvoiceFile = useCallback(
+    async (format: ShareFormat, onProgress?: (pct: number) => void): Promise<File> => {
+      const el = document.getElementById("invoice-preview");
+      if (!el) throw new Error("Preview not ready");
+      return buildInvoiceFile(el, data, format, onProgress);
+    },
+    [data],
+  );
+
   const handleExport = async (kind: "png" | "pdf") => {
-    const el = document.getElementById("invoice-preview");
-    if (!el) {
+    if (!document.getElementById("invoice-preview")) {
       toast.error("Preview not ready", { description: "Please wait a moment and try again." });
       return;
     }
@@ -132,13 +156,8 @@ function Builder() {
     setExportDone(false);
     const tId = toast.loading(kind === "png" ? "Generating PNG…" : "Generating PDF…");
     try {
-      if (kind === "png") {
-        await exportPNG(el, data, setExportProgress);
-        toast.success("PNG downloaded", { id: tId });
-      } else {
-        await exportPDF(el, data, setExportProgress);
-        toast.success("PDF downloaded", { id: tId });
-      }
+      downloadInvoiceFile(await generateInvoiceFile(kind, setExportProgress));
+      toast.success(kind === "png" ? "PNG downloaded" : "PDF downloaded", { id: tId });
       trackEvent("invoice_downloaded", { format: kind });
       setExportDone(true);
       await new Promise((r) => setTimeout(r, 1300));
@@ -161,6 +180,81 @@ function Builder() {
       setExportProgress(0);
       setExportDone(false);
     }
+  };
+
+  /**
+   * Pre-render the Telegram file before anyone taps the button.
+   *
+   * SAFARI: navigator.share() must run while the tap's user activation is still
+   * live, and rendering a PDF takes long enough to spend it — Safari then rejects
+   * the share outright. So the file is built here, in the background, 500ms
+   * after the invoice or the PNG/PDF toggle stops changing, and the click
+   * handler only ever hands over a Blob that already exists.
+   *
+   * The previous file is dropped the moment anything changes, which disables the
+   * button until a fresh one is ready — sharing an outdated invoice is worse
+   * than waiting half a second. Skipped during an Export, which renders anyway.
+   */
+  useEffect(() => {
+    if (exporting) return;
+    let cancelled = false;
+    setShareFile(null);
+    setPreparingShare(true);
+    const timer = setTimeout(async () => {
+      try {
+        // No progress callback: this runs silently and must not drive the
+        // Export button's progress fill.
+        const blob = await generateInvoiceFile(exportType);
+        if (!cancelled) setShareFile({ blob, format: exportType });
+      } catch (e) {
+        if (!cancelled) console.error("[telegram-prepare]", e);
+      } finally {
+        if (!cancelled) setPreparingShare(false);
+      }
+    }, 500);
+    return () => {
+      // A newer edit superseded this run; its result would be stale.
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [generateInvoiceFile, exportType, exporting]);
+
+  const tg = telegramStrings(data.language);
+
+  /**
+   * Hands the invoice file to Telegram: attached via the share sheet on
+   * phones, pasted from the clipboard (PNG) or downloaded (PDF) into Telegram
+   * Web on computers.
+   */
+  const handleTelegramShare = async () => {
+    // SAFARI: share() and clipboard writes only work during the tap, so this
+    // uses the file the effect above rendered ahead of time.
+    if (!shareFile || shareFile.format !== exportType) {
+      toast.error(tg.shareFailed);
+      return;
+    }
+    const message = tg.message(data.invoiceNumber);
+    const { method, fileName, opened } = await sendInvoiceToTelegram({
+      blob: shareFile.blob,
+      format: shareFile.format,
+      invoiceNo: data.invoiceNumber,
+      message,
+    });
+    if (method === "cancelled") return;
+    if (method !== "share_sheet") {
+      const text = method === "clipboard" ? tg.pasteToast() : tg.attachToast(fileName);
+      // A pop-up blocker refused Telegram: a fresh tap on the toast opens it.
+      toast.success(
+        text,
+        opened
+          ? undefined
+          : {
+              action: { label: tg.openTelegram, onClick: () => openTab(telegramLink(message)) },
+              duration: 15000,
+            },
+      );
+    }
+    trackEvent("invoice_shared", { channel: "telegram", format: shareFile.format, method });
   };
 
   return (
@@ -191,7 +285,7 @@ function Builder() {
           ancestor with non-visible overflow clips position:fixed descendants as the page
           scrolls (a well-known CSS gotcha). */}
       <div className="no-print fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4">
-        <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/95 p-1.5 shadow-lg backdrop-blur-md sm:gap-2.5 sm:p-2.5">
+        <div className="flex items-center gap-1.5 rounded-full bg-white/95 p-1.5 shadow-lg backdrop-blur-md sm:gap-2.5 sm:p-2.5">
           <div className="relative flex items-center gap-1 rounded-full bg-muted p-1 sm:gap-1.5 sm:p-1.5">
             <div
               ref={highlightRef}
@@ -223,6 +317,23 @@ function Builder() {
               <span className="hidden sm:inline">PDF</span>
             </button>
           </div>
+          {/* Secondary to Export: lime is reserved for the one primary CTA. */}
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-auto shrink-0 justify-center rounded-full border-border px-3 py-2 text-sm text-foreground hover:bg-muted sm:px-5 sm:py-3 sm:text-base"
+            disabled={!!exporting || preparingShare || !shareFile}
+            onClick={handleTelegramShare}
+            aria-label={preparingShare ? tg.preparing : tg.sendViaTelegram}
+            aria-busy={preparingShare}
+          >
+            {preparingShare ? (
+              <Loader2 className="h-4 w-4 animate-spin sm:mr-2 sm:h-5 sm:w-5" aria-hidden="true" />
+            ) : (
+              <Send className="h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" aria-hidden="true" />
+            )}
+            <span className="hidden sm:inline">{tg.sendViaTelegram}</span>
+          </Button>
           <Button
             size="lg"
             className="relative h-auto w-[92px] justify-center overflow-hidden rounded-full bg-accent-lime px-4 py-2 text-sm text-blue-950 hover:bg-accent-lime/90 sm:w-[148px] sm:px-7 sm:py-3 sm:text-base"
