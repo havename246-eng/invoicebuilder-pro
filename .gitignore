@@ -34,3 +34,16 @@ dist-ssr
 
 # Supabase → Firebase user export (contains password hashes)
 supabase-users.json
+
+# Secrets — never commit. (This repo is public.) .env.production stays
+# committed on purpose: it only holds Firebase's public web config.
+.env
+.env.*.local
+*-firebase-adminsdk-*.json
+*firebase-adminsdk*.json
+serviceAccount*.json
+service-account*.json
+*credentials*.json
+*.pem
+*.key
+*.p12
