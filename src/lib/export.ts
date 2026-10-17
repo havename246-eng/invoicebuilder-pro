@@ -167,6 +167,10 @@ async function renderDataUrl(
     clone.querySelector("[data-brand-footer]")?.remove();
   }
 
+  // Editing aids that only make sense on screen, like the "your logo here"
+  // placeholder, never reach the exported file.
+  clone.querySelectorAll("[data-export-hide]").forEach((el) => el.remove());
+
   sandbox.appendChild(clone);
   document.body.appendChild(sandbox);
   onProgress?.(10);

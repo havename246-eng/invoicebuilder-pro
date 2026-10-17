@@ -321,7 +321,7 @@ function Builder() {
             <InvoiceForm data={data} onChange={handleInvoiceChange} />
           </div>
           <div className="min-w-0 lg:sticky lg:top-24">
-            <InvoicePreview data={data} />
+            <InvoicePreview data={data} editing />
           </div>
         </div>
       </div>

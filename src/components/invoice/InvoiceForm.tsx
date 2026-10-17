@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  currencyDecimals,
+  currencySymbol,
+  formatAmount,
   GOOGLE_FONTS,
   SCRIPT_FONTS,
   THEMES,
@@ -65,6 +69,39 @@ interface Props {
 
 type ImageKey = "logo" | "qrCode" | "customHeader" | "customFooter";
 
+// One-tap messages for the Notes field, written to the invoice's customer.
+// Choosing one replaces the notes.
+const QUICK_NOTES = [
+  {
+    label: "Thank you",
+    text: "Thank you for choosing us! We truly appreciate your support.",
+  },
+  {
+    label: "Due on receipt",
+    text: "Kindly settle this invoice upon receipt. Thank you for your support!",
+  },
+  {
+    label: "Due in 7 days",
+    text: "Kindly settle this invoice within 7 days. Thank you for your support!",
+  },
+  {
+    label: "Due in 14 days",
+    text: "Kindly settle this invoice within 14 days. Thank you for your support!",
+  },
+  {
+    label: "Pay by QR",
+    text: "Please scan the QR code to pay and send us your receipt on Telegram. Thank you!",
+  },
+  {
+    label: "50% deposit",
+    text: "Please pay a 50% deposit so we can get started. The remaining balance is due on completion.",
+  },
+  {
+    label: "See you again",
+    text: "It was a pleasure working with you. We look forward to serving you again!",
+  },
+];
+
 export function InvoiceForm({ data, onChange }: Props) {
   const update = <K extends keyof InvoiceData>(key: K, value: InvoiceData[K]) =>
     onChange({ ...data, [key]: value });
@@ -84,6 +121,31 @@ export function InvoiceForm({ data, onChange }: Props) {
   const handleImage = (key: ImageKey, file: File) => {
     const reader = new FileReader();
     reader.onload = () => update(key, reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  // The invoice draws the QR in a fixed square with object-fit: cover, so a
+  // non-square image would be cropped and could cut off part of the code,
+  // leaving it unscannable. Reject those rather than print a broken QR. A 2%
+  // tolerance allows for a hand-cropped screenshot being a pixel or two off.
+  const handleQrCode = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        if (Math.abs(ratio - 1) > 0.02) {
+          toast.error("QR code must be square", {
+            description: `This image is ${img.naturalWidth}×${img.naturalHeight}px. Crop it to a 1:1 square around the code and upload again.`,
+          });
+          return;
+        }
+        update("qrCode", src);
+      };
+      img.onerror = () => toast.error("Couldn't read that image", { description: "Try a PNG or JPG." });
+      img.src = src;
+    };
     reader.readAsDataURL(file);
   };
 
@@ -138,14 +200,41 @@ export function InvoiceForm({ data, onChange }: Props) {
                     key={key}
                     type="button"
                     onClick={() => update("theme", key)}
-                    className={`group rounded-lg border p-2.5 text-left transition-smooth ${
-                      active ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/30"
-                    }`}
+                    aria-pressed={active}
+                    className="group text-left"
                   >
-                    <div className="flex h-12 items-center justify-center rounded-md" style={{ background: th.bg, border: `1px solid ${th.border}` }}>
-                      <div className="h-6 w-6 rounded" style={{ background: th.accent }} />
+                    {/* A miniature invoice in the theme's own colours: accent
+                        bar, title and detail lines, then the table header. */}
+                    <div
+                      className={`relative h-16 overflow-hidden rounded-lg transition-smooth ${
+                        active
+                          ? "ring-2 ring-blue-900 ring-offset-2"
+                          : "ring-1 ring-border group-hover:ring-foreground/30"
+                      }`}
+                      style={{ background: th.bg }}
+                    >
+                      <div className="h-1" style={{ background: th.accent }} />
+                      <div className="flex flex-col gap-1.5 p-2.5">
+                        <div className="h-1.5 w-1/2 rounded-full" style={{ background: th.text }} />
+                        <div className="h-1 w-1/3 rounded-full opacity-60" style={{ background: th.muted }} />
+                        <div
+                          className="mt-0.5 h-2.5 rounded-sm"
+                          style={{ background: th.tableHead, boxShadow: `inset 0 0 0 1px ${th.border}` }}
+                        />
+                      </div>
+                      {active && (
+                        <span className="absolute right-1.5 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-900 text-white">
+                          <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" />
+                        </span>
+                      )}
                     </div>
-                    <p className="mt-2 truncate text-[10px] text-muted-foreground">{th.name}</p>
+                    <p
+                      className={`mt-2 text-[11px] leading-tight ${
+                        active ? "font-medium text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {th.name}
+                    </p>
                   </button>
                 );
               })}
@@ -234,7 +323,21 @@ export function InvoiceForm({ data, onChange }: Props) {
             <Input type="date" value={data.dueDate} onChange={(e) => update("dueDate", e.target.value)} />
           </Field>
           <Field label="Tax rate (%)">
-            <Input type="number" min="0" value={data.taxRate} onChange={(e) => update("taxRate", Number(e.target.value))} />
+            {/* A zero rate shows as an empty field with a "0" placeholder, so
+                typing starts a fresh number instead of landing after a "0"
+                (which gave "010"). Focus also selects any existing rate, so a
+                new one replaces it. */}
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="0"
+              value={data.taxRate === 0 ? "" : data.taxRate}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => update("taxRate", Number(e.target.value))}
+            />
           </Field>
         </div>
 
@@ -252,7 +355,7 @@ export function InvoiceForm({ data, onChange }: Props) {
         <div className="space-y-4">
           <div className="divide-y divide-border rounded-xl border border-border">
           {data.items.map((item) => (
-            <div key={item.id} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-[1fr_80px_120px_auto] sm:items-center">
+            <div key={item.id} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-[1fr_72px_150px_auto] sm:items-center">
               <Input
                 placeholder="Description"
                 value={item.description}
@@ -266,13 +369,10 @@ export function InvoiceForm({ data, onChange }: Props) {
                 value={item.quantity}
                 onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })}
               />
-              <Input
-                placeholder="Price"
-                type="number"
-                min="0"
-                step="0.01"
+              <PriceInput
                 value={item.price}
-                onChange={(e) => updateItem(item.id, { price: Number(e.target.value) })}
+                currency={data.currency}
+                onChange={(price) => updateItem(item.id, { price })}
               />
               <Button
                 variant="ghost"
@@ -301,10 +401,34 @@ export function InvoiceForm({ data, onChange }: Props) {
             <Input placeholder="e.g. 000 123 456" value={data.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
           </Field>
           <Field label="Payment QR (optional)" className="sm:col-span-2">
-            <ImageUpload value={data.qrCode} onClear={() => update("qrCode", null)} onUpload={(f) => handleImage("qrCode", f)} label="Upload QR code" />
+            <ImageUpload value={data.qrCode} onClear={() => update("qrCode", null)} onUpload={handleQrCode} label="Upload QR code" />
+            <p className="text-xs text-muted-foreground">
+              Must be a square image (1:1), cropped tight to the code, e.g. your KHQR.
+            </p>
           </Field>
           <Field label="Notes" className="sm:col-span-2">
             <Textarea rows={3} placeholder="Thank you for your business. Payment due within 14 days." value={data.notes} onChange={(e) => update("notes", e.target.value)} />
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Quick notes">
+              {QUICK_NOTES.map((note) => {
+                const active = data.notes === note.text;
+                return (
+                  <button
+                    key={note.label}
+                    type="button"
+                    onClick={() => update("notes", note.text)}
+                    aria-pressed={active}
+                    title={note.text}
+                    className={`rounded-full border px-3 py-1 text-xs transition-smooth ${
+                      active
+                        ? "border-blue-900 bg-blue-900 text-white"
+                        : "border-border bg-surface text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                    }`}
+                  >
+                    {note.label}
+                  </button>
+                );
+              })}
+            </div>
           </Field>
         </div>
       </Section>
@@ -479,6 +603,73 @@ function ComingSoonUpload({ value, onClear }: { value: string | null; onClear: (
   );
 }
 
+/**
+ * Price field that formats for the invoice's currency. Unfocused it shows the
+ * amount with thousands separators and the currency's decimals (100,000 or
+ * 1,000.00) after the symbol. Focused it switches to the bare number so typing
+ * isn't fought by commas being inserted mid-edit. The stored value is always
+ * the raw number; it's rounded to the currency's precision only on blur, and
+ * changing currency never converts it.
+ */
+function PriceInput({
+  value,
+  currency,
+  onChange,
+}: {
+  value: number;
+  currency: Currency;
+  onChange: (value: number) => void;
+}) {
+  // The text being typed while focused; null when showing the formatted value.
+  const [draft, setDraft] = useState<string | null>(null);
+  const decimals = currencyDecimals(currency);
+  const symbol = currencySymbol(currency);
+
+  const display = draft ?? (value === 0 ? "" : formatAmount(value, currency));
+
+  const handleChange = (raw: string) => {
+    // Accept pasted "1,000" by dropping separators, then allow only digits and,
+    // for currencies with cents, one decimal point with up to that many places.
+    const text = raw.replace(/,/g, "");
+    const pattern = decimals > 0 ? new RegExp(`^\\d*(\\.\\d{0,${decimals}})?$`) : /^\d*$/;
+    if (!pattern.test(text)) return;
+    setDraft(text);
+    onChange(text === "" || text === "." ? 0 : Number(text));
+  };
+
+  return (
+    <div className="relative">
+      <span
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
+        aria-hidden="true"
+      >
+        {symbol}
+      </span>
+      <Input
+        type="text"
+        inputMode={decimals > 0 ? "decimal" : "numeric"}
+        placeholder="0"
+        aria-label={`Price (${currency})`}
+        value={display}
+        style={{ paddingLeft: `calc(1rem + ${symbol.length}ch)` }}
+        onFocus={(e) => {
+          setDraft(value === 0 ? "" : String(value));
+          // Select after React re-renders the unformatted text.
+          const el = e.target;
+          requestAnimationFrame(() => el.select());
+        }}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={() => {
+          const factor = 10 ** decimals;
+          const rounded = Math.round(value * factor) / factor;
+          if (rounded !== value) onChange(rounded);
+          setDraft(null);
+        }}
+      />
+    </div>
+  );
+}
+
 function ImageUpload({ value, onUpload, onClear, label }: { value: string | null; onUpload: (f: File) => void; onClear: () => void; label: string }) {
   return (
     <div className="flex items-center gap-3">
@@ -495,7 +686,13 @@ function ImageUpload({ value, onUpload, onClear, label }: { value: string | null
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              // Reset so picking the same file again (say, after a rejected
+              // upload) still fires onChange.
+              e.target.value = "";
+              if (file) onUpload(file);
+            }}
           />
         </label>
       )}

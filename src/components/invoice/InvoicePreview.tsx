@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Image as ImageIcon } from "lucide-react";
 import footerBanner from "@/assets/footer-invoice.svg";
 import {
   calcTotals,
@@ -12,7 +13,14 @@ import {
   type InvoiceData,
 } from "@/lib/invoice";
 
-export function InvoicePreview({ data }: { data: InvoiceData }) {
+export function InvoicePreview({
+  data,
+  editing = false,
+}: {
+  data: InvoiceData;
+  /** The live builder preview: shows on-screen editing aids like the logo placeholder. */
+  editing?: boolean;
+}) {
   const { subtotal, tax, total } = calcTotals(data.items, data.taxRate);
   const theme = THEMES[data.theme];
   const lang = data.language;
@@ -106,7 +114,8 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             {data.logo ? (
               <img src={data.logo} alt="Logo" style={{ height: "56px", width: "56px", borderRadius: "10px", objectFit: "cover" }} />
-            ) : (
+            ) : !editing ? (
+              // Display-only previews (the homepage samples) get a monogram.
               <div
                 style={{
                   height: "56px",
@@ -122,6 +131,30 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
                 }}
               >
                 {(data.senderName || "·").charAt(0)}
+              </div>
+            ) : (
+              // In the builder: a placeholder showing where an uploaded logo
+              // will sit. On screen only: export strips [data-export-hide], so
+              // an invoice without a logo ships with just the company name.
+              <div
+                data-export-hide
+                aria-hidden="true"
+                style={{
+                  height: "56px",
+                  width: "56px",
+                  borderRadius: "10px",
+                  border: `1.5px dashed ${theme.muted}`,
+                  color: theme.muted,
+                  opacity: 0.7,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "3px",
+                }}
+              >
+                <ImageIcon style={{ height: "18px", width: "18px" }} strokeWidth={1.75} />
+                <span style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.12em" }}>LOGO</span>
               </div>
             )}
             <div>
@@ -301,7 +334,7 @@ export function InvoicePreview({ data }: { data: InvoiceData }) {
                 <img
                   src={data.qrCode}
                   alt="Payment QR"
-                  style={{ height: "110px", width: "110px", borderRadius: "8px", border: `1px solid ${theme.border}`, objectFit: "cover" }}
+                  style={{ height: "160px", width: "160px", borderRadius: "8px", border: `1px solid ${theme.border}`, objectFit: "cover" }}
                 />
               </div>
             )}

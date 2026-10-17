@@ -94,10 +94,19 @@ const CURRENCY_FORMATS: Record<Currency, { symbol: string; decimals: number }> =
   KRW: { symbol: "₩", decimals: 0 },
 };
 
-export const formatMoney = (amount: number, currency: Currency) => {
-  const { symbol, decimals } = CURRENCY_FORMATS[currency];
-  return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+export const currencySymbol = (currency: Currency) => CURRENCY_FORMATS[currency].symbol;
+export const currencyDecimals = (currency: Currency) => CURRENCY_FORMATS[currency].decimals;
+
+/** The amount with thousands separators and the currency's decimals, no symbol. */
+export const formatAmount = (amount: number, currency: Currency) => {
+  const { decimals } = CURRENCY_FORMATS[currency];
+  return amount.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
+
+// Display only: the stored amount is never converted or rounded here, so
+// switching currency changes the symbol and precision, not the number.
+export const formatMoney = (amount: number, currency: Currency) =>
+  `${currencySymbol(currency)}${formatAmount(amount, currency)}`;
 
 export const calcTotals = (items: LineItem[], taxRate: number) => {
   const subtotal = items.reduce((s, i) => s + i.quantity * i.price, 0);
