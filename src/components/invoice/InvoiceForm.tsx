@@ -69,6 +69,27 @@ interface Props {
 
 type ImageKey = "logo" | "qrCode" | "customHeader" | "customFooter";
 
+// Smallest side accepted for an uploaded payment QR (see handleQrCode).
+const QR_MIN_PX = 500;
+
+// Custom header and footer both run full-bleed across the paper: 794px wide on
+// A4, 816px on Letter/Legal. Exports render at 2×, so 1632px wide stays sharp
+// on every paper size. A custom footer replaces the "Powered by InvoiceCraft"
+// strip and, in PDFs, repeats at the bottom of every page.
+const BANNER = {
+  recommendedW: 1632,
+  recommendedH: 272,
+  // Below this it's blurry even on screen.
+  minW: 800,
+  // Height is auto, so a squarish image would eat a third of the page. 3:1 caps
+  // it at roughly 265px tall on A4.
+  minRatio: 3,
+  // Drafts live in localStorage (~5MB, and saving there fails silently once
+  // full). A data URL is ~1.33× the file, so 1MB leaves room for header, footer,
+  // logo and QR together.
+  maxMB: 1,
+};
+
 // One-tap messages for the Notes field, written to the invoice's customer.
 // Choosing one replaces the notes.
 const QUICK_NOTES = [
@@ -118,6 +139,43 @@ export function InvoiceForm({ data, onChange }: Props) {
   const removeItem = (id: string) =>
     onChange({ ...data, items: data.items.filter((i) => i.id !== id) });
 
+  const brandingUploads = useBrandingUploads();
+
+  // Custom header/footer: enforce the BANNER limits before storing.
+  const handleBanner = (key: "customHeader" | "customFooter", file: File) => {
+    const name = key === "customHeader" ? "Header" : "Footer";
+    if (file.size > BANNER.maxMB * 1024 * 1024) {
+      toast.error(`${name} image is too large`, {
+        description: `It's ${(file.size / 1024 / 1024).toFixed(1)}MB. Use one under ${BANNER.maxMB}MB — try exporting as JPG or at ${BANNER.recommendedW}px wide.`,
+      });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const { naturalWidth: w, naturalHeight: h } = img;
+        if (w < BANNER.minW) {
+          toast.error(`${name} image is too small`, {
+            description: `It's ${w}px wide. Use at least ${BANNER.minW}px (${BANNER.recommendedW}px is best) so it stays sharp.`,
+          });
+          return;
+        }
+        if (w / h < BANNER.minRatio) {
+          toast.error(`${name} image is too tall`, {
+            description: `It's ${w}×${h}px. Make it at least ${BANNER.minRatio}× wider than tall, like ${BANNER.recommendedW}×${BANNER.recommendedH}px.`,
+          });
+          return;
+        }
+        update(key, src);
+      };
+      img.onerror = () => toast.error("Couldn't read that image", { description: "Try a PNG or JPG." });
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleImage = (key: ImageKey, file: File) => {
     const reader = new FileReader();
     reader.onload = () => update(key, reader.result as string);
@@ -128,16 +186,25 @@ export function InvoiceForm({ data, onChange }: Props) {
   // non-square image would be cropped and could cut off part of the code,
   // leaving it unscannable. Reject those rather than print a broken QR. A 2%
   // tolerance allows for a hand-cropped screenshot being a pixel or two off.
+  // It must also be at least 500×500px: the invoice prints it at 160px and
+  // exports at 2×, and a smaller source blurs the modules enough to hurt
+  // scanning. Larger squares are fine.
   const handleQrCode = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       const src = reader.result as string;
       const img = new Image();
       img.onload = () => {
-        const ratio = img.naturalWidth / img.naturalHeight;
-        if (Math.abs(ratio - 1) > 0.02) {
+        const { naturalWidth: w, naturalHeight: h } = img;
+        if (Math.abs(w / h - 1) > 0.02) {
           toast.error("QR code must be square", {
-            description: `This image is ${img.naturalWidth}×${img.naturalHeight}px. Crop it to a 1:1 square around the code and upload again.`,
+            description: `This image is ${w}×${h}px. Crop it to a square around the code, at least ${QR_MIN_PX}×${QR_MIN_PX}px, and upload again.`,
+          });
+          return;
+        }
+        if (Math.min(w, h) < QR_MIN_PX) {
+          toast.error("QR code is too small", {
+            description: `This image is ${w}×${h}px. Use one at least ${QR_MIN_PX}×${QR_MIN_PX}px so it stays sharp enough to scan.`,
           });
           return;
         }
@@ -240,12 +307,32 @@ export function InvoiceForm({ data, onChange }: Props) {
               })}
             </div>
           </Field>
+          <Field label="Paper color" className="sm:col-span-2">
+            <PaperColorPicker
+              value={data.paperColor}
+              themePaper={THEMES[data.theme].bg}
+              onChange={(c) => update("paperColor", c)}
+            />
+          </Field>
           <Field label="Custom header">
-            <ComingSoonUpload value={data.customHeader} onClear={() => update("customHeader", null)} />
+            {brandingUploads ? (
+              <ImageUpload value={data.customHeader} onClear={() => update("customHeader", null)} onUpload={(f) => handleBanner("customHeader", f)} label="Upload header" />
+            ) : (
+              <ComingSoonUpload value={data.customHeader} onClear={() => update("customHeader", null)} />
+            )}
           </Field>
           <Field label="Custom footer">
-            <ComingSoonUpload value={data.customFooter} onClear={() => update("customFooter", null)} />
+            {brandingUploads ? (
+              <ImageUpload value={data.customFooter} onClear={() => update("customFooter", null)} onUpload={(f) => handleBanner("customFooter", f)} label="Upload footer" />
+            ) : (
+              <ComingSoonUpload value={data.customFooter} onClear={() => update("customFooter", null)} />
+            )}
           </Field>
+          {brandingUploads && (
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              {BANNER.recommendedW} × {BANNER.recommendedH}px · PNG or JPG · max {BANNER.maxMB}MB
+            </p>
+          )}
         </div>
       </Section>
 
@@ -401,9 +488,10 @@ export function InvoiceForm({ data, onChange }: Props) {
             <Input placeholder="e.g. 000 123 456" value={data.bankAccount} onChange={(e) => update("bankAccount", e.target.value)} />
           </Field>
           <Field label="Payment QR (optional)" className="sm:col-span-2">
-            <ImageUpload value={data.qrCode} onClear={() => update("qrCode", null)} onUpload={handleQrCode} label="Upload QR code" />
+            <ImageUpload value={data.qrCode} onClear={() => update("qrCode", null)} onUpload={handleQrCode} label="Upload QR code" square />
             <p className="text-xs text-muted-foreground">
-              Must be a square image (1:1), cropped tight to the code, e.g. your KHQR.
+              Square image, at least {QR_MIN_PX} × {QR_MIN_PX}px, cropped tight to the code, e.g.
+              your KHQR.
             </p>
           </Field>
           <Field label="Notes" className="sm:col-span-2">
@@ -583,6 +671,120 @@ function Field({ label, children, className }: { label: string; children: React.
   );
 }
 
+// Ready-made paper colours: soft tints that read well with dark text, then a few
+// dark papers that switch the invoice to light text (see resolveTheme).
+const PAPER_PRESETS = [
+  "#ffffff", // white
+  "#fbf8f1", // cream
+  "#f1f5f9", // cool grey
+  "#eff6ff", // sky
+  "#ecfdf5", // mint
+  "#fef9c3", // butter
+  "#fff1e6", // peach
+  "#fdf2f8", // blush
+  "#f5f3ff", // lavender
+  "#1e293b", // slate
+  "#172554", // navy
+  "#14532d", // forest
+];
+
+/**
+ * Paper colour for the invoice. "Theme" (null) keeps the selected theme's own
+ * paper; a preset or the custom picker replaces it, and the invoice's text,
+ * lines and table shading adapt so it stays readable (resolveTheme).
+ */
+function PaperColorPicker({
+  value,
+  themePaper,
+  onChange,
+}: {
+  value: string | null;
+  themePaper: string;
+  onChange: (color: string | null) => void;
+}) {
+  const current = value ?? themePaper;
+  const selected = value?.toLowerCase() ?? null;
+  const isPreset = selected !== null && PAPER_PRESETS.includes(selected);
+  const swatch = (on: boolean) =>
+    `relative flex h-8 w-8 items-center justify-center rounded-full ring-1 ring-black/15 transition-smooth ${
+      on ? "outline outline-2 outline-offset-2 outline-blue-900" : "hover:scale-110"
+    }`;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2.5">
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        aria-pressed={value === null}
+        title="Theme's own paper"
+        className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs transition-smooth ${
+          value === null
+            ? "border-blue-900 bg-blue-900 text-white"
+            : "border-border text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <span className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: themePaper }} />
+        Theme
+      </button>
+      {PAPER_PRESETS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => onChange(c)}
+          aria-pressed={selected === c}
+          aria-label={`Paper ${c}`}
+          className={swatch(selected === c)}
+          style={{ background: c }}
+        />
+      ))}
+      {/* Any colour: the native picker, shown as a rainbow swatch until a
+          custom colour is chosen, then as that colour. */}
+      <label
+        className={`${swatch(value !== null && !isPreset)} cursor-pointer overflow-hidden`}
+        style={{
+          background:
+            value !== null && !isPreset
+              ? value
+              : "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
+        }}
+        title="Pick any colour"
+      >
+        <input
+          type="color"
+          value={current}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label="Pick any paper colour"
+        />
+      </label>
+    </div>
+  );
+}
+
+const BRANDING_TEST_KEY = "invoicecraft:test-branding";
+
+/**
+ * Custom header/footer uploads are "Coming soon" for the public. They're
+ * unlocked for testing in local dev, or on any deployment by visiting
+ * /builder?test=branding once (remembered in this browser; ?test=off clears
+ * it). The preview and export already handle the images either way.
+ */
+function useBrandingUploads() {
+  const [enabled, setEnabled] = useState(import.meta.env.DEV);
+  useEffect(() => {
+    try {
+      const flag = new URLSearchParams(window.location.search).get("test");
+      if (flag === "branding") localStorage.setItem(BRANDING_TEST_KEY, "1");
+      if (flag === "off") localStorage.removeItem(BRANDING_TEST_KEY);
+      if (localStorage.getItem(BRANDING_TEST_KEY) === "1") setEnabled(true);
+      else if (flag === "off") setEnabled(import.meta.env.DEV);
+    } catch {
+      /* storage blocked: fall back to the dev-only default */
+    }
+  }, []);
+  return enabled;
+}
+
 // Placeholder for uploads that aren't available yet. If a value is already stored
 // (autosaved from an earlier session), keep showing it with a Remove button so the
 // user isn't stuck with an image they can no longer clear.
@@ -670,17 +872,38 @@ function PriceInput({
   );
 }
 
-function ImageUpload({ value, onUpload, onClear, label }: { value: string | null; onUpload: (f: File) => void; onClear: () => void; label: string }) {
+function ImageUpload({
+  value,
+  onUpload,
+  onClear,
+  label,
+  square = false,
+}: {
+  value: string | null;
+  onUpload: (f: File) => void;
+  onClear: () => void;
+  label: string;
+  /** Square drop zone and preview, matching an image that must be 1:1 (the QR). */
+  square?: boolean;
+}) {
   return (
     <div className="flex items-center gap-3">
       {value ? (
         <div className="flex items-center gap-3">
-          <img src={value} alt="" className="h-14 w-14 rounded-lg border border-border object-cover" />
+          <img
+            src={value}
+            alt=""
+            className={`rounded-lg border border-border object-cover ${square ? "h-32 w-32" : "h-14 w-14"}`}
+          />
           <Button variant="outline" size="sm" onClick={onClear}>Remove</Button>
         </div>
       ) : (
-        <label className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-dashed border-border bg-surface text-sm text-muted-foreground transition-smooth hover:border-foreground hover:text-foreground">
-          <Upload className="h-4 w-4" />
+        <label
+          className={`flex cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-dashed border-border bg-surface text-sm text-muted-foreground transition-smooth hover:border-foreground hover:text-foreground ${
+            square ? "h-32 w-32 flex-col px-3 text-center text-xs" : "h-14 flex-1"
+          }`}
+        >
+          <Upload className={square ? "h-5 w-5" : "h-4 w-4"} />
           {label}
           <input
             type="file"

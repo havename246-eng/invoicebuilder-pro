@@ -77,6 +77,8 @@ export interface InvoiceData {
   // Customization
   language: InvoiceLanguage;
   theme: InvoiceTheme;
+  /** Overrides the theme's paper colour (#rrggbb); null keeps the theme's own. See resolveTheme. */
+  paperColor: string | null;
   paperSize: PaperSize;
   customHeader: string | null;
   customFooter: string | null;
@@ -136,6 +138,7 @@ export const defaultInvoice = (): InvoiceData => ({
   qrCode: null,
   language: "en",
   theme: "classic",
+  paperColor: null,
   paperSize: "A4",
   customHeader: null,
   customFooter: null,
@@ -329,6 +332,45 @@ export const THEMES: Record<InvoiceTheme, ThemeStyle> = {
     tableHead: "#ffedd5",
   },
 };
+
+// WCAG relative luminance of a #rrggbb colour, 0 (black) to 1 (white).
+function luminance(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/**
+ * The colours an invoice actually renders with: the selected theme, or — when
+ * the user picked their own paper colour — that paper with text, lines and
+ * table shading derived from it, so a dark paper gets light text and vice
+ * versa. The theme's accent is kept unless it would be unreadable on the new
+ * paper, in which case the text colour stands in.
+ */
+export function resolveTheme(data: Pick<InvoiceData, "theme" | "paperColor">): ThemeStyle {
+  const base = THEMES[data.theme];
+  const bg = data.paperColor;
+  if (!bg || !/^#[0-9a-f]{6}$/i.test(bg)) return base;
+  const dark = contrast(bg, "#ffffff") > contrast(bg, "#0f172a");
+  const text = dark ? "#f8fafc" : "#0f172a";
+  return {
+    name: base.name,
+    bg,
+    text,
+    muted: dark ? "rgba(248, 250, 252, 0.68)" : "rgba(15, 23, 42, 0.6)",
+    accent: contrast(base.accent, bg) >= 3 ? base.accent : text,
+    border: dark ? "rgba(255, 255, 255, 0.16)" : "rgba(15, 23, 42, 0.12)",
+    tableHead: dark ? "rgba(255, 255, 255, 0.07)" : "rgba(15, 23, 42, 0.04)",
+  };
+}
 
 export const STATUS_STYLES: Record<InvoiceStatus, { bg: string; text: string; ring: string }> = {
   draft: { bg: "#f1f5f9", text: "#475569", ring: "#cbd5e1" },

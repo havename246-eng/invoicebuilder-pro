@@ -4,7 +4,7 @@ import footerBanner from "@/assets/footer-invoice.svg";
 import {
   PAPER_DIMENSIONS,
   paperPxWidth,
-  THEMES,
+  resolveTheme,
   type InvoiceData,
   type PaperSize,
 } from "./invoice";
@@ -287,21 +287,30 @@ async function renderDataUrl(
 }
 
 /**
- * Rasterize the brand footer SVG to a PNG data URL at 2× the sheet width so
- * jsPDF (which can't draw SVGs) can stamp it onto every page.
+ * Rasterize the footer strip — the user's custom footer if they uploaded one,
+ * otherwise the brand footer SVG — to a PNG data URL at 2× the sheet width so
+ * jsPDF (which can't draw SVGs) can stamp it onto every page. Returns its
+ * height/width ratio alongside, since a custom footer can be any shape.
  */
-async function rasterizeBrandFooter(sheetPxWidth: number): Promise<string | null> {
+async function rasterizeFooter(
+  customFooter: string | null,
+  sheetPxWidth: number,
+): Promise<{ png: string; aspect: number } | null> {
   try {
     const img = new Image();
-    img.src = footerBanner;
+    img.src = customFooter ?? footerBanner;
     await img.decode();
+    const aspect =
+      customFooter && img.naturalWidth > 0
+        ? img.naturalHeight / img.naturalWidth
+        : BRAND_FOOTER_ASPECT;
     const canvas = document.createElement("canvas");
     canvas.width = sheetPxWidth * 2;
-    canvas.height = Math.round(sheetPxWidth * 2 * BRAND_FOOTER_ASPECT);
+    canvas.height = Math.round(sheetPxWidth * 2 * aspect);
     const g = canvas.getContext("2d");
     if (!g) return null;
     g.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/png");
+    return { png: canvas.toDataURL("image/png"), aspect };
   } catch {
     return null;
   }
@@ -413,7 +422,7 @@ async function renderPNGBlob(
   data: InvoiceData,
   onProgress?: OnProgress,
 ): Promise<Blob> {
-  const bg = THEMES[data.theme].bg;
+  const bg = resolveTheme(data).bg;
   const dataUrl = await renderDataUrl(el, data.paperSize, bg, onProgress);
   onProgress?.(95);
   return dataUrlToBlob(dataUrl);
@@ -424,13 +433,13 @@ async function renderPDFBlob(
   data: InvoiceData,
   onProgress?: OnProgress,
 ): Promise<Blob> {
-  const bg = THEMES[data.theme].bg;
+  const bg = resolveTheme(data).bg;
   const paperSize = data.paperSize;
   // If the strip can't be rasterized, fall back to leaving it inside the sheet
   // image rather than exporting an unbranded PDF.
-  const footerPng = await rasterizeBrandFooter(paperPxWidth(paperSize));
+  const footer = await rasterizeFooter(data.customFooter, paperPxWidth(paperSize));
   const dataUrl = await renderDataUrl(el, paperSize, bg, onProgress, {
-    omitBrandFooter: !!footerPng,
+    omitBrandFooter: !!footer,
   });
   const { w, h } = PAPER_DIMENSIONS[paperSize];
 
@@ -457,9 +466,9 @@ async function renderPDFBlob(
   const imgW = pageW;
   const imgH = imgW * (img.height / img.width);
 
-  // The brand strip is stamped at the bottom of every page; content flows in
+  // The footer strip is stamped at the bottom of every page; content flows in
   // the band above it, continuing on the next page from where the strip cut in.
-  const footerH = footerPng ? pageW * BRAND_FOOTER_ASPECT : 0;
+  const footerH = footer ? pageW * footer.aspect : 0;
   const usableH = pageH - footerH;
 
   // The sheet's trailing strip zone (vacated by the removed in-sheet strip,
@@ -476,8 +485,8 @@ async function renderPDFBlob(
     // jsPDF re-encodes the PNG's pixels into the PDF and defaults to no
     // compression, which balloons a one-page invoice to ~10MB.
     pdf.addImage(dataUrl, "PNG", 0, -page * usableH, imgW, imgH, undefined, "FAST");
-    if (footerPng) {
-      pdf.addImage(footerPng, "PNG", 0, pageH - footerH, pageW, footerH, undefined, "FAST");
+    if (footer) {
+      pdf.addImage(footer.png, "PNG", 0, pageH - footerH, pageW, footerH, undefined, "FAST");
     }
   }
   onProgress?.(98);

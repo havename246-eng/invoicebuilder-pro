@@ -9,7 +9,7 @@ import {
   paperPxWidth,
   STATUS_STYLES,
   t,
-  THEMES,
+  resolveTheme,
   type InvoiceData,
 } from "@/lib/invoice";
 
@@ -22,11 +22,17 @@ export function InvoicePreview({
   editing?: boolean;
 }) {
   const { subtotal, tax, total } = calcTotals(data.items, data.taxRate);
-  const theme = THEMES[data.theme];
+  const theme = resolveTheme(data);
   const lang = data.language;
   const status = STATUS_STYLES[data.status];
   const widthPx = paperPxWidth(data.paperSize);
   const minHeightPx = paperPxHeight(data.paperSize);
+  // A5 is ~70% of A4's width; at A4's sizes its text and 160px QR crowd the
+  // page and push it onto a second one. Shrink the body to 80% and tighten the
+  // margin there.
+  const compact = data.paperSize === "A5";
+  const contentZoom = compact ? 0.8 : 1;
+  const pad = compact ? 32 : 48;
 
   // Fit-to-container scaling so the true-size page is readable on every screen.
   // The first paint uses pure CSS, so the server-rendered page is already the
@@ -54,6 +60,30 @@ export function InvoicePreview({
   }, [widthPx]);
   const scale = measured ?? `min(1, tan(atan2(100cqw, ${widthPx}px)))`;
 
+  // The sheet is at least one page tall but grows with its content (long item
+  // lists, a QR, a custom header/footer — A5 overflows easily). The scaled box
+  // around it has to follow that real height or the overflow is clipped.
+  // offsetHeight ignores the transform, so it's the unscaled height.
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [sheetH, setSheetH] = useState<number | null>(null);
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el) return;
+    const update = () => setSheetH(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Height/width of the uploaded custom footer, learned when it loads. Its
+  // pinned height is reserved as bottom padding so content never runs under it;
+  // until it loads, assume the recommended 6:1 banner.
+  // Keyed by source so a stale ratio from a previous upload is never used.
+  const [footerSize, setFooterSize] = useState<{ src: string; aspect: number } | null>(null);
+  const footerAspect = footerSize && footerSize.src === data.customFooter ? footerSize.aspect : 1 / 6;
+  const customFooterH = data.customFooter ? Math.round(widthPx * footerAspect) : 0;
+
   // Load the chosen Google Font on demand (advanced settings) and inject its <link> once.
   useEffect(() => {
     if (!data.invoiceFont) return;
@@ -71,11 +101,12 @@ export function InvoicePreview({
       <div
         style={{
           width: `calc(${widthPx}px * ${scale})`,
-          height: `calc(${minHeightPx}px * ${scale})`,
+          height: `calc(${Math.max(sheetH ?? 0, minHeightPx)}px * ${scale})`,
           marginInline: "auto",
         }}
       >
         <div
+          ref={sheetRef}
           id="invoice-preview"
           className="font-invoice shadow-elegant"
           style={{
@@ -83,7 +114,9 @@ export function InvoicePreview({
             minHeight: `${minHeightPx}px`,
             background: theme.bg,
             color: theme.text,
-            padding: "48px",
+            // The brand strip fits inside the bottom padding; a custom footer
+            // can be far taller, so reserve its height plus a gap.
+            padding: customFooterH ? `${pad}px ${pad}px ${customFooterH + 32}px` : `${pad}px`,
             boxSizing: "border-box",
             transform: `scale(${scale})`,
             transformOrigin: "top left",
@@ -92,13 +125,26 @@ export function InvoicePreview({
           }}
         >
         {/* Custom header banner */}
+        {/* Full-bleed: the negative margins cancel the sheet's padding so the
+            header runs edge to edge across the top of the paper. */}
         {data.customHeader && (
           <img
             src={data.customHeader}
             alt="Header"
-            style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginBottom: "24px", borderRadius: "8px" }}
+            style={{
+              display: "block",
+              width: `calc(100% + ${pad * 2}px)`,
+              maxWidth: "none",
+              height: "auto",
+              margin: `-${pad}px -${pad}px 32px`,
+            }}
           />
         )}
+
+        {/* Everything between header and footer. Zoomed on A5 so text, the
+            logo and QR shrink together and keep A4's proportions; the
+            full-bleed header and footer stay outside it. */}
+        <div style={{ zoom: contentZoom }}>
 
         {/* Header */}
         <div
@@ -340,24 +386,23 @@ export function InvoicePreview({
             )}
           </div>
         )}
+        </div>
 
-        {/* Custom footer */}
-        {data.customFooter && (
-          <img
-            src={data.customFooter}
-            alt="Footer"
-            style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", marginTop: "24px", borderRadius: "8px" }}
-          />
-        )}
-
-        {/* Brand footer strip — pinned to the bottom edge of the sheet. The PDF
-            export removes it from the capture and stamps it onto every page
-            instead (see renderPDFBlob in lib/export.ts), keyed off this data
-            attribute. */}
+        {/* Footer strip, pinned full-bleed to the bottom edge of the sheet: the
+            user's custom footer when they've uploaded one, which replaces the
+            "Powered by InvoiceCraft" brand strip, otherwise that brand strip.
+            The PDF export removes it from the capture and stamps it onto every
+            page instead (see renderPDFBlob in lib/export.ts), keyed off this
+            data attribute. */}
         <img
-          src={footerBanner}
+          src={data.customFooter ?? footerBanner}
           alt=""
           data-brand-footer=""
+          onLoad={(e) => {
+            if (!data.customFooter) return;
+            const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+            if (w > 0) setFooterSize({ src: data.customFooter, aspect: h / w });
+          }}
           style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "auto", display: "block" }}
         />
         </div>
