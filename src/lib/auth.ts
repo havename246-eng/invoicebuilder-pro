@@ -1,5 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import {
+  deleteCookie,
+  getCookie,
+  getRequestHeader,
+  getRequestUrl,
+  setCookie,
+} from "@tanstack/react-start/server";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_S,
@@ -38,6 +44,17 @@ function toAuthUser(u: FirebaseUserRecord): AuthUser {
     emailConfirmed: Boolean(u.emailVerified),
     createdAt: Number.isFinite(createdMs) ? new Date(createdMs).toISOString() : null,
   };
+}
+
+/**
+ * True when a state-changing request came from a page on this site. Browsers
+ * always send Origin on a cross-site POST and can't be made to forge it, so
+ * this stops another website from silently signing a visitor into the
+ * attacker's account ("login CSRF") or signing them out.
+ */
+function isSameOrigin(): boolean {
+  const origin = getRequestHeader("origin");
+  return !!origin && origin === getRequestUrl().origin;
 }
 
 const cookieOptions = {
@@ -83,6 +100,7 @@ export const fetchUser = createServerFn({ method: "GET" }).handler(
 export const createSessionFn = createServerFn({ method: "POST" })
   .inputValidator((idToken: string) => idToken)
   .handler(async ({ data: idToken }): Promise<{ ok: boolean; error?: string }> => {
+    if (!isSameOrigin()) return { ok: false, error: "Request blocked." };
     const sa = serviceAccount();
     if (!sa) return { ok: false, error: "Sign-in isn't configured on the server yet." };
 
@@ -107,6 +125,7 @@ export const createSessionFn = createServerFn({ method: "POST" })
  * the cookie taken before sign-out stops working too.
  */
 export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {
+  if (!isSameOrigin()) return { ok: false };
   const sa = serviceAccount();
   const cookie = getCookie(SESSION_COOKIE);
   deleteCookie(SESSION_COOKIE, cookieOptions);
