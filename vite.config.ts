@@ -9,6 +9,13 @@ import { defineConfig, type LovableViteTanstackOptions } from "@lovable.dev/vite
 
 const TURNSTILE = "https://challenges.cloudflare.com";
 
+// styles.css @imports the site fonts from Google Fonts, InvoicePreview adds the
+// chosen invoice font the same way, and export.ts fetches both hosts to inline
+// fonts into the PDF/PNG. Without these, every device fell back to its own
+// system font — which is why phones and tablets didn't match the design.
+const FONT_CSS = "https://fonts.googleapis.com";
+const FONT_FILES = "https://fonts.gstatic.com";
+
 /**
  * Reads one key out of a dotenv file.
  *
@@ -57,12 +64,12 @@ const csp = [
   // if Start ever threads a nonce through the SSR response.
   `script-src 'self' 'unsafe-inline' ${TURNSTILE}`,
   // Tailwind and Radix both set inline styles at runtime.
-  "style-src 'self' 'unsafe-inline'",
+  `style-src 'self' 'unsafe-inline' ${FONT_CSS}`,
   // data:/blob: cover the PDF and PNG export paths (jspdf, html-to-image);
   // Google's CDN serves OAuth account avatars.
   "img-src 'self' data: blob: https://lh3.googleusercontent.com",
-  "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigins().join(" ")} ${TURNSTILE}`,
+  `font-src 'self' data: ${FONT_FILES}`,
+  `connect-src 'self' ${supabaseOrigins().join(" ")} ${TURNSTILE} ${FONT_CSS} ${FONT_FILES}`,
   // The Turnstile challenge renders in an iframe.
   `frame-src ${TURNSTILE}`,
   "worker-src 'self' blob:",
