@@ -20,7 +20,12 @@ const SESSION_CERTS = "https://www.googleapis.com/identitytoolkit/v3/relyingpart
  * they're never bundled into the browser). Null when not configured.
  */
 export function serviceAccount(): ServiceAccount | null {
-  const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.VITE_FIREBASE_PROJECT_ID;
+  // The project id isn't secret: fall back to the public one Vite inlines at
+  // build time, so production only needs the two real secrets below.
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.VITE_FIREBASE_PROJECT_ID ||
+    (import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined);
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
   if (!projectId || !clientEmail || !privateKey) return null;

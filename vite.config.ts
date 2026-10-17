@@ -52,7 +52,11 @@ const GOOGLE_API_LOADER = "https://apis.google.com";
 function firebaseAuthOrigins(): string {
   const key = "VITE_FIREBASE_AUTH_DOMAIN";
   const domain =
-    process.env[key] ?? readEnvFile(".env.local", key) ?? readEnvFile(".env", key) ?? "";
+    process.env[key] ??
+    readEnvFile(".env.local", key) ??
+    readEnvFile(".env.production", key) ??
+    readEnvFile(".env", key) ??
+    "";
   return /^[\w.-]+$/.test(domain) ? `https://${domain}` : "https://*.firebaseapp.com https://*.web.app";
 }
 
