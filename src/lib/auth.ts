@@ -1,115 +1,123 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient } from "./supabase/server";
+import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_AGE_S,
+  createSessionCookie,
+  lookupUser,
+  revokeSessions,
+  serviceAccount,
+  verifyIdToken,
+  verifySessionCookie,
+  type FirebaseUserRecord,
+} from "./firebase/server";
 
 export type AuthUser = {
   id: string;
   email: string | null;
   name: string | null;
   avatarUrl: string | null;
-  /** "email", "google", … — how this account signs in. */
+  /** "email" when the account has a password, otherwise its OAuth provider ("google"). */
   provider: string;
   emailConfirmed: boolean;
   createdAt: string | null;
 };
 
-function toAuthUser(user: {
-  id: string;
-  email?: string | null;
-  created_at?: string | null;
-  email_confirmed_at?: string | null;
-  confirmed_at?: string | null;
-  app_metadata?: Record<string, unknown> | null;
-  user_metadata?: Record<string, unknown> | null;
-}): AuthUser {
-  const meta = user.user_metadata ?? {};
-  const name = (meta.full_name ?? meta.name ?? null) as string | null;
-  const avatarUrl = (meta.avatar_url ?? meta.picture ?? null) as string | null;
-  const provider = ((user.app_metadata ?? {}).provider as string | undefined) ?? "email";
+function toAuthUser(u: FirebaseUserRecord): AuthUser {
+  const google = u.providerUserInfo?.find((p) => p.providerId === "google.com");
+  const hasPassword =
+    !!u.passwordHash || !!u.providerUserInfo?.some((p) => p.providerId === "password");
+  const createdMs = Number(u.createdAt);
 
   return {
-    id: user.id,
-    email: user.email ?? null,
-    name,
-    avatarUrl,
-    provider,
-    emailConfirmed: Boolean(user.email_confirmed_at ?? user.confirmed_at),
-    createdAt: user.created_at ?? null,
+    id: u.localId,
+    email: u.email ?? null,
+    name: u.displayName ?? google?.displayName ?? null,
+    avatarUrl: u.photoUrl ?? google?.photoUrl ?? null,
+    provider: hasPassword || !google ? "email" : "google",
+    emailConfirmed: Boolean(u.emailVerified),
+    createdAt: Number.isFinite(createdMs) ? new Date(createdMs).toISOString() : null,
   };
 }
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "lax" as const,
+  path: "/",
+};
+
 /**
- * Resolves the signed-in user from request cookies. Uses getUser() rather than
- * getSession() — getUser() revalidates the JWT against Supabase, so a forged or
- * stale cookie can't be used to satisfy a route guard.
+ * Resolves the signed-in user from the session cookie. The cookie's signature
+ * is checked locally, then the account is looked up so the header and route
+ * guards see current details (a renamed profile, a confirmed email) and a
+ * disabled or revoked account is treated as signed out.
  */
 export const fetchUser = createServerFn({ method: "GET" }).handler(
   async (): Promise<AuthUser | null> => {
-    const supabase = getSupabaseServerClient();
-    if (!supabase) return null;
+    const sa = serviceAccount();
+    const cookie = getCookie(SESSION_COOKIE);
+    if (!sa || !cookie) return null;
 
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) return null;
-
-    return toAuthUser(data.user);
+    try {
+      const claims = await verifySessionCookie(sa, cookie);
+      const record = await lookupUser(sa, claims.sub!);
+      if (!record || record.disabled) return null;
+      // Sessions issued before the account's revocation time are dead.
+      if (record.validSince && (claims.auth_time ?? 0) < Number(record.validSince)) return null;
+      return toAuthUser(record);
+    } catch {
+      return null;
+    }
   },
 );
 
-/** Clears the session cookies server-side. */
-export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {
-  const supabase = getSupabaseServerClient();
-  if (!supabase) return { ok: true };
+/**
+ * Turns a just-issued Firebase ID token into the httpOnly session cookie.
+ *
+ * Only a token from a sign-in in the last five minutes is accepted, so a
+ * leaked older token can't be upgraded into a two-week session. Password
+ * accounts must have confirmed their email first, matching the old Supabase
+ * behaviour; Google accounts arrive verified.
+ */
+export const createSessionFn = createServerFn({ method: "POST" })
+  .inputValidator((idToken: string) => idToken)
+  .handler(async ({ data: idToken }): Promise<{ ok: boolean; error?: string }> => {
+    const sa = serviceAccount();
+    if (!sa) return { ok: false, error: "Sign-in isn't configured on the server yet." };
 
-  await supabase.auth.signOut();
+    try {
+      const claims = await verifyIdToken(sa, idToken);
+      const authAgeS = Date.now() / 1000 - (claims.auth_time ?? 0);
+      if (authAgeS > 5 * 60) return { ok: false, error: "Please sign in again." };
+      if (!claims.email_verified) {
+        return { ok: false, error: "Confirm your email address before signing in." };
+      }
+
+      const session = await createSessionCookie(sa, idToken);
+      setCookie(SESSION_COOKIE, session, { ...cookieOptions, maxAge: SESSION_MAX_AGE_S });
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Couldn't start your session. Please try again." };
+    }
+  });
+
+/**
+ * Clears the session cookie and revokes the account's sessions, so a copy of
+ * the cookie taken before sign-out stops working too.
+ */
+export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {
+  const sa = serviceAccount();
+  const cookie = getCookie(SESSION_COOKIE);
+  deleteCookie(SESSION_COOKIE, cookieOptions);
+
+  if (sa && cookie) {
+    try {
+      const claims = await verifySessionCookie(sa, cookie);
+      await revokeSessions(sa, claims.sub!);
+    } catch {
+      // Already invalid — nothing to revoke.
+    }
+  }
   return { ok: true };
 });
-
-/**
- * Exchanges a PKCE `?code=` (Google OAuth) for a session, writing the session
- * cookies onto the response.
- */
-export const exchangeCodeFn = createServerFn({ method: "POST" })
-  .inputValidator((code: string) => code)
-  .handler(
-    async ({ data: code }): Promise<{ ok: boolean; error?: string; isNewUser?: boolean }> => {
-      const supabase = getSupabaseServerClient();
-      if (!supabase) return { ok: false, error: "Supabase is not configured." };
-
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) return { ok: false, error: error.message };
-
-      return { ok: true, isNewUser: isFirstSignIn(data.user) };
-    },
-  );
-
-/**
- * Whether this sign-in is the one that created the account.
- *
- * Supabase reports no "was this a signup?" flag on an OAuth exchange, but for
- * an account created by this very exchange `created_at` and `last_sign_in_at`
- * are stamped moments apart, where a returning user's differ by hours or more.
- * Only analytics reads this, so an occasional miscall costs nothing.
- */
-function isFirstSignIn(user: { created_at?: string | null; last_sign_in_at?: string | null }) {
-  const createdAt = Date.parse(user?.created_at ?? "");
-  const lastSignIn = Date.parse(user?.last_sign_in_at ?? "");
-  if (Number.isNaN(createdAt) || Number.isNaN(lastSignIn)) return false;
-  return Math.abs(lastSignIn - createdAt) < 10_000;
-}
-
-/**
- * Verifies an emailed one-time token (signup confirmation, password recovery)
- * and establishes the session.
- */
-export const verifyOtpFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { tokenHash: string; type: string }) => input)
-  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
-    const supabase = getSupabaseServerClient();
-    if (!supabase) return { ok: false, error: "Supabase is not configured." };
-
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: data.tokenHash,
-      type: data.type as "signup" | "recovery" | "email_change" | "invite" | "magiclink",
-    });
-
-    return error ? { ok: false, error: error.message } : { ok: true };
-  });

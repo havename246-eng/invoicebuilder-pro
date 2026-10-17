@@ -7,8 +7,6 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { GoogleButton } from "@/components/auth/GoogleButton";
-import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
-import { useTurnstile } from "@/hooks/use-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,8 +17,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { sendEmailVerification, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  actionCodeSettings,
+  authErrorMessage,
+  getFirebaseAuth,
+  startSession,
+} from "@/lib/firebase/client";
+import { FIREBASE_SETUP_MESSAGE } from "@/lib/firebase/env";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { trackEvent } from "@/lib/analytics";
 import { noIndexHead } from "@/lib/site-url";
@@ -46,7 +50,6 @@ function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const turnstile = useTurnstile("login");
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -54,26 +57,38 @@ function LoginPage() {
   });
 
   async function onSubmit(values: LoginValues) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      toast.error(FIREBASE_SETUP_MESSAGE);
       return;
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-      options: { captchaToken: turnstile.token ?? undefined },
-    });
+    try {
+      const { user } = await signInWithEmailAndPassword(auth, values.email, values.password);
 
-    if (error) {
+      // Password accounts can't sign in until their email is confirmed. Send a
+      // fresh link (the first may have expired), then drop the browser session.
+      if (!user.emailVerified) {
+        await sendEmailVerification(user, actionCodeSettings(`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`)).catch(() => undefined);
+        await signOut(auth);
+        setSubmitting(false);
+        form.setError("email", {
+          message: "Confirm your email first — we've just sent you a new link.",
+        });
+        return;
+      }
+
+      const session = await startSession(user);
+      if (!session.ok) {
+        await signOut(auth);
+        setSubmitting(false);
+        form.setError("password", { message: session.error ?? "Couldn't sign you in." });
+        return;
+      }
+    } catch (error) {
       setSubmitting(false);
-      // The token just spent is dead either way; re-arm before the next try.
-      turnstile.reset();
-      // Supabase returns the same error for a wrong password and an unknown
-      // account, which is what we want — don't leak which emails are registered.
-      form.setError("password", { message: error.message });
+      form.setError("password", { message: authErrorMessage(error) });
       return;
     }
 
@@ -169,12 +184,10 @@ function LoginPage() {
             )}
           />
 
-          <TurnstileWidget turnstile={turnstile} />
-
           <Button
             type="submit"
             className="w-full rounded-lg"
-            disabled={submitting || !turnstile.solved}
+            disabled={submitting}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {submitting ? "Signing in…" : "Sign in"}

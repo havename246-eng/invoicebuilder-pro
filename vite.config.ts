@@ -7,7 +7,6 @@
 import { readFileSync } from "node:fs";
 import { defineConfig, type LovableViteTanstackOptions } from "@lovable.dev/vite-tanstack-config";
 
-const TURNSTILE = "https://challenges.cloudflare.com";
 
 // styles.css @imports the site fonts from Google Fonts, InvoicePreview adds the
 // chosen invoice font the same way, and export.ts fetches both hosts to inline
@@ -36,24 +35,25 @@ function readEnvFile(file: string, key: string): string | undefined {
   return undefined;
 }
 
-/**
- * The Supabase origins the browser is allowed to talk to, read at build time.
- *
- * Falls back to any Supabase project when the URL isn't in the build
- * environment — a wrong-but-loose policy still blocks exfiltration to an
- * arbitrary attacker domain, whereas a missing connect-src would break auth
- * entirely on a preview deploy that forgot the env var.
- */
-function supabaseOrigins(): string[] {
-  const key = "VITE_SUPABASE_URL";
-  const url = process.env[key] ?? readEnvFile(".env.local", key) ?? readEnvFile(".env", key) ?? "";
+// Firebase Auth's REST endpoints (sign-in, token refresh) and the loader its
+// Google popup uses to talk to the auth-domain iframe.
+const FIREBASE_APIS = "https://identitytoolkit.googleapis.com https://securetoken.googleapis.com";
+const GOOGLE_API_LOADER = "https://apis.google.com";
 
-  try {
-    const { origin, host } = new URL(url);
-    return [origin, `wss://${host}`];
-  } catch {
-    return ["https://*.supabase.co", "wss://*.supabase.co"];
-  }
+/**
+ * The Firebase auth domain, read at build time: the Google sign-in popup
+ * works through a hidden iframe served from it.
+ *
+ * Falls back to any Firebase-hosted domain when the value isn't in the build
+ * environment — a wrong-but-loose policy still blocks arbitrary origins,
+ * whereas a missing frame-src would break Google sign-in on a preview deploy
+ * that forgot the env var.
+ */
+function firebaseAuthOrigins(): string {
+  const key = "VITE_FIREBASE_AUTH_DOMAIN";
+  const domain =
+    process.env[key] ?? readEnvFile(".env.local", key) ?? readEnvFile(".env", key) ?? "";
+  return /^[\w.-]+$/.test(domain) ? `https://${domain}` : "https://*.firebaseapp.com https://*.web.app";
 }
 
 const csp = [
@@ -62,16 +62,16 @@ const csp = [
   // emitting inline <script> blocks (ScriptOnce / Asset) and @tanstack/react-start
   // has no nonce support, so a strict script-src white-screens the app. Revisit
   // if Start ever threads a nonce through the SSR response.
-  `script-src 'self' 'unsafe-inline' ${TURNSTILE}`,
+  `script-src 'self' 'unsafe-inline' ${GOOGLE_API_LOADER}`,
   // Tailwind and Radix both set inline styles at runtime.
   `style-src 'self' 'unsafe-inline' ${FONT_CSS}`,
   // data:/blob: cover the PDF and PNG export paths (jspdf, html-to-image);
   // Google's CDN serves OAuth account avatars.
   "img-src 'self' data: blob: https://lh3.googleusercontent.com",
   `font-src 'self' data: ${FONT_FILES}`,
-  `connect-src 'self' ${supabaseOrigins().join(" ")} ${TURNSTILE} ${FONT_CSS} ${FONT_FILES}`,
-  // The Turnstile challenge renders in an iframe.
-  `frame-src ${TURNSTILE}`,
+  `connect-src 'self' ${FIREBASE_APIS} ${FONT_CSS} ${FONT_FILES}`,
+  // Firebase's Google sign-in iframe.
+  `frame-src ${firebaseAuthOrigins()}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

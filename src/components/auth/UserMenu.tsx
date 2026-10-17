@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signOut } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { signOutFn, type AuthUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -33,9 +34,10 @@ export function UserMenu({ user, dark }: { user: AuthUser; dark: boolean }) {
   async function handleSignOut() {
     setSigningOut(true);
 
-    // Clear the browser session first so the client stops refreshing tokens,
-    // then clear the cookies server-side so SSR agrees we're signed out.
-    await getSupabaseBrowserClient()?.auth.signOut();
+    // Clear the browser's Firebase session first, then the server cookie (which
+    // also revokes the account's sessions) so SSR agrees we're signed out.
+    const auth = getFirebaseAuth();
+    if (auth) await signOut(auth);
     await signOutFn();
     await router.invalidate();
 

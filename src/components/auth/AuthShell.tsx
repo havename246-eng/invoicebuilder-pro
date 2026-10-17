@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { SiteHeader } from "@/components/site/Header";
-import { isSupabaseConfigured, SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { FIREBASE_SETUP_MESSAGE, isFirebaseConfigured } from "@/lib/firebase/env";
 
 /**
  * Centred, branded frame shared by every auth page so login, signup and the
@@ -28,13 +28,13 @@ export function AuthShell({
               {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
             </div>
 
-            {!isSupabaseConfigured && (
+            {!isFirebaseConfigured && (
               <div
                 role="alert"
                 className="mt-6 flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-left"
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                <p className="text-xs leading-relaxed text-amber-900">{SUPABASE_SETUP_MESSAGE}</p>
+                <p className="text-xs leading-relaxed text-amber-900">{FIREBASE_SETUP_MESSAGE}</p>
               </div>
             )}
 

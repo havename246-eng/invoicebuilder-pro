@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, AlertTriangle } from "lucide-react";
+import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
+import { FIREBASE_SETUP_MESSAGE } from "@/lib/firebase/env";
 import { noIndexHead } from "@/lib/site-url";
 
 const schema = z
@@ -35,45 +36,69 @@ type Values = z.infer<typeof schema>;
 
 export const Route = createFileRoute("/reset-password")({
   head: () => noIndexHead("Choose a new password | InvoiceCraft"),
+  // The one-time code from the emailed link, forwarded by /auth/callback.
+  validateSearch: z.object({
+    oobCode: z.string().optional().catch(undefined),
+  }),
   component: ResetPasswordPage,
 });
 
 function ResetPasswordPage() {
-  const { user } = Route.useRouteContext();
+  const { oobCode } = Route.useSearch();
   const navigate = useNavigate();
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // undefined while checking the code, null if it's unusable, else the account's email.
+  const [email, setEmail] = useState<string | null | undefined>(undefined);
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { password: "", confirmPassword: "" },
   });
 
+  // Check the link up front so an expired one says so before anyone types a
+  // new password into it.
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth || !oobCode) {
+      setEmail(null);
+      return;
+    }
+    verifyPasswordResetCode(auth, oobCode).then(setEmail, () => setEmail(null));
+  }, [oobCode]);
+
   async function onSubmit(values: Values) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const auth = getFirebaseAuth();
+    if (!auth || !oobCode) {
+      toast.error(FIREBASE_SETUP_MESSAGE);
       return;
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password: values.password });
-
-    if (error) {
+    try {
+      await confirmPasswordReset(auth, oobCode, values.password);
+    } catch (error) {
       setSubmitting(false);
-      form.setError("password", { message: error.message });
+      form.setError("password", { message: authErrorMessage(error) });
       return;
     }
 
-    await router.invalidate();
-    toast.success("Password updated");
-    navigate({ to: "/dashboard" });
+    toast.success("Password updated — sign in with your new password");
+    navigate({ to: "/login" });
   }
 
-  // Following a valid recovery link establishes a session before this renders.
-  // No session means the link was never opened, or it expired.
-  if (!user) {
+  if (email === undefined) {
+    return (
+      <AuthShell title="Set a new password" subtitle="Checking your link…">
+        <div className="flex justify-center py-4">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </AuthShell>
+    );
+  }
+
+  // No code, or one that's expired or already used.
+  if (email === null) {
     return (
       <AuthShell
         title="Link expired"
@@ -102,7 +127,7 @@ function ResetPasswordPage() {
   return (
     <AuthShell
       title="Set a new password"
-      subtitle={user.email ? `Updating the password for ${user.email}.` : undefined}
+      subtitle={`Updating the password for ${email}.`}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>

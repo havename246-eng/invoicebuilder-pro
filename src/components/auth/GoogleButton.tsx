@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useNavigate, useRouter } from "@tanstack/react-router";
+import { GoogleAuthProvider, getAdditionalUserInfo, signInWithPopup, signOut } from "firebase/auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { authErrorMessage, getFirebaseAuth, startSession } from "@/lib/firebase/client";
+import { FIREBASE_SETUP_MESSAGE } from "@/lib/firebase/env";
+import { trackEvent } from "@/lib/analytics";
 
 function GoogleMark() {
   return (
@@ -28,8 +31,10 @@ function GoogleMark() {
 }
 
 /**
- * Starts Google's OAuth flow. Supabase bounces the user back to /auth/callback
- * with a PKCE code, which that route exchanges for a session.
+ * Google sign-in through Firebase's popup. The popup keeps this page alive, so
+ * the session cookie is made and the user sent on from here — no callback
+ * route. (Firebase's redirect flow breaks in browsers that partition
+ * third-party storage unless the auth domain is this site's own.)
  */
 export function GoogleButton({
   redirectTo = "/dashboard",
@@ -39,27 +44,40 @@ export function GoogleButton({
   label: string;
 }) {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const navigate = useNavigate();
 
   async function signInWithGoogle() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      toast.error(FIREBASE_SETUP_MESSAGE);
       return;
     }
 
     setLoading(true);
-    const callback = new URL("/auth/callback", window.location.origin);
-    callback.searchParams.set("redirect", redirectTo);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const credential = await signInWithPopup(auth, provider);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: callback.toString() },
-    });
+      const session = await startSession(credential.user);
+      if (!session.ok) {
+        await signOut(auth);
+        throw new Error(session.error);
+      }
 
-    // On success the browser navigates away, so this only runs on failure.
-    if (error) {
+      const isNewUser = getAdditionalUserInfo(credential)?.isNewUser ?? false;
+      trackEvent(isNewUser ? "sign_up" : "login", { method: "google" });
+
+      await router.invalidate();
+      navigate({ to: redirectTo });
+    } catch (error) {
       setLoading(false);
-      toast.error(error.message);
+      const message =
+        error instanceof Error && !(error as { code?: string }).code && error.message
+          ? error.message
+          : authErrorMessage(error);
+      toast.error(message);
     }
   }
 
@@ -72,7 +90,7 @@ export function GoogleButton({
       disabled={loading}
     >
       <GoogleMark />
-      {loading ? "Redirecting…" : label}
+      {loading ? "Signing in…" : label}
     </Button>
   );
 }

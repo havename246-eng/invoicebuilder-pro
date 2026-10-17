@@ -6,8 +6,6 @@ import { z } from "zod";
 import { Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
-import { useTurnstile } from "@/hooks/use-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,8 +16,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { actionCodeSettings, authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
+import { FIREBASE_SETUP_MESSAGE } from "@/lib/firebase/env";
 import { noIndexHead } from "@/lib/site-url";
 
 const schema = z.object({
@@ -36,7 +35,6 @@ export const Route = createFileRoute("/forgot-password")({
 function ForgotPasswordPage() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const turnstile = useTurnstile("password-reset");
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -44,35 +42,29 @@ function ForgotPasswordPage() {
   });
 
   async function onSubmit(values: Values) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      toast.error(FIREBASE_SETUP_MESSAGE);
       return;
     }
 
     setSubmitting(true);
-
-    // Route the emailed link through the shared callback, telling it to land on
-    // the new-password form once the recovery token is verified.
-    const callback = new URL("/auth/callback", window.location.origin);
-    callback.searchParams.set("redirect", "/reset-password");
-
-    const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-      redirectTo: callback.toString(),
-      captchaToken: turnstile.token ?? undefined,
-    });
-
-    setSubmitting(false);
-
-    if (error) {
-      // The token just spent is dead either way; re-arm before the next try.
-      turnstile.reset();
-      form.setError("email", { message: error.message });
-      return;
+    try {
+      // The emailed link opens /auth/callback, which forwards to the
+      // new-password form; after that the user signs in again.
+      await sendPasswordResetEmail(auth, values.email, actionCodeSettings("/login"));
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      // An unknown address still reports success below — confirming whether
+      // an email has an account would let anyone enumerate our users.
+      if (code !== "auth/user-not-found") {
+        setSubmitting(false);
+        form.setError("email", { message: authErrorMessage(error) });
+        return;
+      }
     }
 
-    // Always report success — confirming whether an address has an account
-    // would let anyone enumerate our users.
+    setSubmitting(false);
     setSentTo(values.email);
   }
 
@@ -133,12 +125,10 @@ function ForgotPasswordPage() {
             )}
           />
 
-          <TurnstileWidget turnstile={turnstile} />
-
           <Button
             type="submit"
             className="w-full rounded-lg"
-            disabled={submitting || !turnstile.solved}
+            disabled={submitting}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {submitting ? "Sending…" : "Send reset link"}

@@ -18,8 +18,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import {
+  EmailAuthProvider,
+  linkWithCredential,
+  signOut,
+  updatePassword,
+  updateProfile,
+  verifyBeforeUpdateEmail,
+} from "firebase/auth";
+import {
+  actionCodeSettings,
+  authErrorMessage,
+  currentFirebaseUser,
+  getFirebaseAuth,
+  startSession,
+} from "@/lib/firebase/client";
 import { signOutFn, type AuthUser } from "@/lib/auth";
 import { noIndexHead } from "@/lib/site-url";
 
@@ -81,6 +94,8 @@ const passwordSchema = z
     path: ["confirmPassword"],
   });
 
+const SIGN_IN_AGAIN = "Your sign-in on this device has expired. Sign out and sign in again.";
+
 function AccountPage() {
   const { user } = Route.useRouteContext();
   const router = useRouter();
@@ -125,20 +140,21 @@ function ProfileSection({
   });
 
   async function onSubmit(values: z.infer<typeof profileSchema>) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const fbUser = await currentFirebaseUser();
+    if (!fbUser) {
+      form.setError("name", { message: SIGN_IN_AGAIN });
       return;
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ data: { full_name: values.name } });
-    setSubmitting(false);
-
-    if (error) {
-      form.setError("name", { message: error.message });
+    try {
+      await updateProfile(fbUser, { displayName: values.name });
+    } catch (error) {
+      setSubmitting(false);
+      form.setError("name", { message: authErrorMessage(error) });
       return;
     }
+    setSubmitting(false);
 
     await router.invalidate();
     toast.success("Profile updated");
@@ -194,31 +210,27 @@ function EmailSection({ user }: { user: AuthUser }) {
   });
 
   async function onSubmit(values: z.infer<typeof emailSchema>) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
-      return;
-    }
-
     if (values.email === user.email) {
       form.setError("email", { message: "That's already your email address." });
       return;
     }
 
-    setSubmitting(true);
-    const callback = new URL("/auth/callback", window.location.origin);
-    callback.searchParams.set("redirect", "/account");
-
-    const { error } = await supabase.auth.updateUser(
-      { email: values.email },
-      { emailRedirectTo: callback.toString() },
-    );
-    setSubmitting(false);
-
-    if (error) {
-      form.setError("email", { message: error.message });
+    const fbUser = await currentFirebaseUser();
+    if (!fbUser) {
+      form.setError("email", { message: SIGN_IN_AGAIN });
       return;
     }
+
+    setSubmitting(true);
+    try {
+      // The address only changes once the link sent to it is opened.
+      await verifyBeforeUpdateEmail(fbUser, values.email, actionCodeSettings("/login"));
+    } catch (error) {
+      setSubmitting(false);
+      form.setError("email", { message: authErrorMessage(error) });
+      return;
+    }
+    setSubmitting(false);
 
     setPending(values.email);
   }
@@ -287,20 +299,32 @@ function PasswordSection({ user }: { user: AuthUser }) {
   const isOAuthOnly = user.provider !== "email";
 
   async function onSubmit(values: z.infer<typeof passwordSchema>) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const fbUser = await currentFirebaseUser();
+    if (!fbUser?.email) {
+      form.setError("password", { message: SIGN_IN_AGAIN });
       return;
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password: values.password });
-    setSubmitting(false);
-
-    if (error) {
-      form.setError("password", { message: error.message });
+    try {
+      if (isOAuthOnly) {
+        // Adds email + password as a second way into the same account.
+        await linkWithCredential(
+          fbUser,
+          EmailAuthProvider.credential(fbUser.email, values.password),
+        );
+      } else {
+        await updatePassword(fbUser, values.password);
+      }
+      // A password change revokes earlier sessions, this one's cookie
+      // included; swap in a fresh cookie so this device stays signed in.
+      await startSession(fbUser);
+    } catch (error) {
+      setSubmitting(false);
+      form.setError("password", { message: authErrorMessage(error) });
       return;
     }
+    setSubmitting(false);
 
     form.reset({ password: "", confirmPassword: "" });
     toast.success(isOAuthOnly ? "Password set" : "Password updated");
@@ -391,7 +415,8 @@ function DetailsSection({ user }: { user: AuthUser }) {
 
   async function handleSignOut() {
     setSigningOut(true);
-    await getSupabaseBrowserClient()?.auth.signOut();
+    const auth = getFirebaseAuth();
+    if (auth) await signOut(auth);
     await signOutFn();
     await router.invalidate();
     setSigningOut(false);

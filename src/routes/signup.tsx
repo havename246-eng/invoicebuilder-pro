@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,8 +7,6 @@ import { Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { GoogleButton } from "@/components/auth/GoogleButton";
-import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
-import { useTurnstile } from "@/hooks/use-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,8 +18,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { SUPABASE_SETUP_MESSAGE } from "@/lib/supabase/env";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import { actionCodeSettings, authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
+import { FIREBASE_SETUP_MESSAGE } from "@/lib/firebase/env";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { trackEvent } from "@/lib/analytics";
 import { noIndexHead } from "@/lib/site-url";
@@ -50,12 +54,9 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const { redirect } = Route.useSearch();
-  const navigate = useNavigate();
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSentTo, setConfirmationSentTo] = useState<string | null>(null);
-  const turnstile = useTurnstile("signup");
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -63,49 +64,34 @@ function SignupPage() {
   });
 
   async function onSubmit(values: SignupValues) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      toast.error(SUPABASE_SETUP_MESSAGE);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      toast.error(FIREBASE_SETUP_MESSAGE);
       return;
     }
 
     setSubmitting(true);
-    const callback = new URL("/auth/callback", window.location.origin);
-    callback.searchParams.set("redirect", safeRedirect(redirect));
-
-    const { data, error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: { full_name: values.name },
-        emailRedirectTo: callback.toString(),
-        captchaToken: turnstile.token ?? undefined,
-      },
-    });
-
-    if (error) {
+    try {
+      const { user } = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      await updateProfile(user, { displayName: values.name });
+      // The confirmation link brings them back to sign in, then on to where
+      // they were headed.
+      const loginPath = `/login${redirect ? `?redirect=${encodeURIComponent(safeRedirect(redirect))}` : ""}`;
+      await sendEmailVerification(user, actionCodeSettings(loginPath));
+      // Firebase signs a new account straight in; the server won't issue a
+      // session until the email is confirmed, so drop the browser one too.
+      await signOut(auth);
+    } catch (error) {
       setSubmitting(false);
-      // The token just spent is dead either way; re-arm before the next try.
-      turnstile.reset();
-      form.setError("email", { message: error.message });
+      form.setError("email", { message: authErrorMessage(error) });
       return;
     }
 
-    // The account exists at this point whether or not a session came back, so
-    // report it here and not again when the confirmation link is opened.
+    // The account exists now, so report it here and not again when the
+    // confirmation link is opened.
     trackEvent("sign_up", { method: "email" });
-
-    // With email confirmation on, signUp returns a user but no session — the
-    // account isn't usable until the emailed link is opened.
-    if (!data.session) {
-      setSubmitting(false);
-      setConfirmationSentTo(values.email);
-      return;
-    }
-
-    await router.invalidate();
-    toast.success("Account created");
-    navigate({ to: safeRedirect(redirect) });
+    setSubmitting(false);
+    setConfirmationSentTo(values.email);
   }
 
   if (confirmationSentTo) {
@@ -131,7 +117,7 @@ function SignupPage() {
             <MailCheck className="h-6 w-6 text-primary" />
           </div>
           <p className="text-sm text-muted-foreground">
-            The link expires in 24 hours. If it doesn't arrive in a few minutes, check your spam
+            If it doesn't arrive in a few minutes, check your spam
             folder.
           </p>
           <Button asChild variant="outline" className="w-full rounded-lg">
@@ -252,12 +238,10 @@ function SignupPage() {
             )}
           />
 
-          <TurnstileWidget turnstile={turnstile} />
-
           <Button
             type="submit"
             className="w-full rounded-lg"
-            disabled={submitting || !turnstile.solved}
+            disabled={submitting}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {submitting ? "Creating account…" : "Create account"}

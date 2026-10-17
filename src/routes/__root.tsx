@@ -11,7 +11,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { fetchUser, type AuthUser } from "@/lib/auth";
 import { trackOAuthReturnFromHash } from "@/lib/analytics";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { onAuthStateChanged } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { SITE_URL, absoluteUrl } from "@/lib/site-url";
 
 import appCss from "../styles.css?url";
@@ -133,21 +134,21 @@ function RootComponent() {
     trackOAuthReturnFromHash();
   }, []);
 
-  // Keeps this tab in step when the session changes elsewhere — a sign-out in
-  // another tab, or a token refresh — by re-running beforeLoad.
+  // Keeps this tab in step when the session changes elsewhere — a sign-in or
+  // sign-out in another tab — by re-running beforeLoad. Firebase syncs its
+  // state across tabs; the first callback just reports the restored state.
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
+    const auth = getFirebaseAuth();
+    if (!auth) return;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        router.invalidate();
+    let first = true;
+    return onAuthStateChanged(auth, () => {
+      if (first) {
+        first = false;
+        return;
       }
+      router.invalidate();
     });
-
-    return () => subscription.unsubscribe();
   }, [router]);
 
   return (

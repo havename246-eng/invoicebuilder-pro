@@ -1,7 +1,7 @@
 /**
  * Clamps a user-supplied `?redirect=` value to an in-app path.
  *
- * The parameter reaches us from links and from Supabase's redirect chain, so it
+ * The parameter reaches us from links and from emailed sign-in links, so it
  * must never be trusted: `https://evil.com` or the protocol-relative forms
  * `//evil.com` and `/\evil.com` would otherwise turn our login page into an
  * open redirect that lends our domain's credibility to a phishing page.
