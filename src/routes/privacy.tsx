@@ -46,7 +46,32 @@ function PrivacyNotice() {
             <h2 className="text-lg font-semibold">Uploaded images</h2>
             <p className="mt-2 text-muted-foreground">
               Logos and QR codes you upload are converted to a local data format in your browser and
-              never leave your device. They're used only to render your invoice preview and export.
+              never leave your device, unless you choose to save your business details to Google
+              Drive (below). They're used only to render your invoice preview and export.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-lg font-semibold">Optional: Google Drive</h2>
+            <p className="mt-2 text-muted-foreground">
+              If you press "Save to Drive" in the builder, we ask Google for permission to use a
+              private app folder in your own Google Drive (the <code>drive.appdata</code> scope). We
+              save one file there — your business name, email, address and logo — and read it back
+              when you press "Load". We can't see any other files in your Drive, and the file never
+              passes through our servers: your browser talks to Google directly. You can remove
+              InvoiceCraft's access, and the file, at any time from your Google Account under
+              Security → Third-party apps with account access.
+            </p>
+            <p className="mt-2 text-muted-foreground">
+              InvoiceCraft's use of information received from Google APIs adheres to the{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-900 underline underline-offset-2"
+              >
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements.
             </p>
           </section>
           <section>

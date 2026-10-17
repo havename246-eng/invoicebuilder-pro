@@ -39,6 +39,10 @@ function readEnvFile(file: string, key: string): string | undefined {
 // Google popup uses to talk to the auth-domain iframe.
 const FIREBASE_APIS = "https://identitytoolkit.googleapis.com https://securetoken.googleapis.com";
 const GOOGLE_API_LOADER = "https://apis.google.com";
+// Google Identity Services (the Drive access popup) and the Drive API itself,
+// for the optional "save my details to Google Drive" feature.
+const GOOGLE_ACCOUNTS = "https://accounts.google.com";
+const GOOGLE_DRIVE_API = "https://www.googleapis.com";
 
 /**
  * The Firebase auth domain, read at build time: the Google sign-in popup
@@ -66,16 +70,16 @@ const csp = [
   // emitting inline <script> blocks (ScriptOnce / Asset) and @tanstack/react-start
   // has no nonce support, so a strict script-src white-screens the app. Revisit
   // if Start ever threads a nonce through the SSR response.
-  `script-src 'self' 'unsafe-inline' ${GOOGLE_API_LOADER}`,
+  `script-src 'self' 'unsafe-inline' ${GOOGLE_API_LOADER} ${GOOGLE_ACCOUNTS}`,
   // Tailwind and Radix both set inline styles at runtime.
   `style-src 'self' 'unsafe-inline' ${FONT_CSS}`,
   // data:/blob: cover the PDF and PNG export paths (jspdf, html-to-image);
   // Google's CDN serves OAuth account avatars.
   "img-src 'self' data: blob: https://lh3.googleusercontent.com",
   `font-src 'self' data: ${FONT_FILES}`,
-  `connect-src 'self' ${FIREBASE_APIS} ${FONT_CSS} ${FONT_FILES}`,
-  // Firebase's Google sign-in iframe.
-  `frame-src ${firebaseAuthOrigins()}`,
+  `connect-src 'self' ${FIREBASE_APIS} ${GOOGLE_DRIVE_API} ${FONT_CSS} ${FONT_FILES}`,
+  // Firebase's Google sign-in iframe, and Google's Drive-access consent frame.
+  `frame-src ${firebaseAuthOrigins()} ${GOOGLE_ACCOUNTS}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -111,6 +115,12 @@ const nitro = {
         "Referrer-Policy": "strict-origin-when-cross-origin",
         // The app never uses these devices; deny them outright.
         "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+        // Cut the window.opener link to pages that open this one, closing
+        // off tab-napping and cross-window leaks. "allow-popups" rather than
+        // "same-origin": Firebase's Google sign-in popup has to report back.
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+        // Adobe/Flash-era cross-domain policy files: none are served.
+        "X-Permitted-Cross-Domain-Policies": "none",
       },
     },
   },

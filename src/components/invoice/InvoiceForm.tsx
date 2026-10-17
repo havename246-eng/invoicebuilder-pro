@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import { Check, ChevronDown, CloudDownload, CloudUpload, Loader2, Palette, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,12 @@ import {
   type PaperSize,
 } from "@/lib/invoice";
 import { trackEvent } from "@/lib/analytics";
+import {
+  isDriveConfigured,
+  loadProfileFromDrive,
+  saveProfileToDrive,
+  type BusinessProfile,
+} from "@/lib/google-drive";
 
 const DEFAULT_FONT_VALUE = "__default__";
 
@@ -308,11 +314,15 @@ export function InvoiceForm({ data, onChange }: Props) {
             </div>
           </Field>
           <Field label="Paper color" className="sm:col-span-2">
-            <PaperColorPicker
-              value={data.paperColor}
-              themePaper={THEMES[data.theme].bg}
-              onChange={(c) => update("paperColor", c)}
-            />
+            {brandingUploads ? (
+              <PaperColorPicker
+                value={data.paperColor}
+                themePaper={THEMES[data.theme].bg}
+                onChange={(c) => update("paperColor", c)}
+              />
+            ) : (
+              <ComingSoonPaperColor value={data.paperColor} onReset={() => update("paperColor", null)} />
+            )}
           </Field>
           <Field label="Custom header">
             {brandingUploads ? (
@@ -352,6 +362,17 @@ export function InvoiceForm({ data, onChange }: Props) {
             <ImageUpload value={data.logo} onClear={() => update("logo", null)} onUpload={(f) => handleImage("logo", f)} label="Upload logo" />
           </Field>
         </div>
+        {isDriveConfigured && (
+          <DriveProfileSync
+            profile={{
+              senderName: data.senderName,
+              senderEmail: data.senderEmail,
+              senderAddress: data.senderAddress,
+              logo: data.logo,
+            }}
+            onLoad={(profile) => onChange({ ...data, ...profile })}
+          />
+        )}
       </Section>
 
       {/* Bill to */}
@@ -764,22 +785,21 @@ function PaperColorPicker({
 const BRANDING_TEST_KEY = "invoicecraft:test-branding";
 
 /**
- * Custom header/footer uploads are "Coming soon" for the public. They're
- * unlocked for testing in local dev, or on any deployment by visiting
- * /builder?test=branding once (remembered in this browser; ?test=off clears
- * it). The preview and export already handle the images either way.
+ * Paper colour and custom header/footer uploads are "Coming soon"
+ * everywhere, local dev included. Unlock them for testing by visiting /builder?test=branding once
+ * (remembered in this browser; ?test=off clears it). The preview and export already handle the images either way.
  */
 function useBrandingUploads() {
-  const [enabled, setEnabled] = useState(import.meta.env.DEV);
+  const [enabled, setEnabled] = useState(false);
   useEffect(() => {
     try {
       const flag = new URLSearchParams(window.location.search).get("test");
       if (flag === "branding") localStorage.setItem(BRANDING_TEST_KEY, "1");
       if (flag === "off") localStorage.removeItem(BRANDING_TEST_KEY);
       if (localStorage.getItem(BRANDING_TEST_KEY) === "1") setEnabled(true);
-      else if (flag === "off") setEnabled(import.meta.env.DEV);
+      else if (flag === "off") setEnabled(false);
     } catch {
-      /* storage blocked: fall back to the dev-only default */
+      /* storage blocked: stay "Coming soon" */
     }
   }, []);
   return enabled;
@@ -788,6 +808,97 @@ function useBrandingUploads() {
 // Placeholder for uploads that aren't available yet. If a value is already stored
 // (autosaved from an earlier session), keep showing it with a Remove button so the
 // user isn't stuck with an image they can no longer clear.
+/**
+ * Save/load the "From" details to the user's own Google Drive (hidden app
+ * folder), so they follow the user to another device. Each button asks Google
+ * for access the first time, so they run straight from the click.
+ */
+function DriveProfileSync({
+  profile,
+  onLoad,
+}: {
+  profile: BusinessProfile;
+  onLoad: (profile: BusinessProfile) => void;
+}) {
+  const [busy, setBusy] = useState<"save" | "load" | null>(null);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+
+  async function save() {
+    setBusy("save");
+    try {
+      await saveProfileToDrive(profile);
+      setSavedAt(new Date());
+      toast.success("Saved to your Google Drive");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save to Google Drive.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function load() {
+    setBusy("load");
+    try {
+      const saved = await loadProfileFromDrive();
+      if (!saved) {
+        toast.info("Nothing saved in this Google Drive yet", {
+          description: "Fill in your details and press Save to Drive.",
+        });
+        return;
+      }
+      onLoad(saved);
+      toast.success("Loaded your details from Google Drive");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't load from Google Drive.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mt-5 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-medium text-foreground">Google Drive</p>
+        <p className="text-xs text-muted-foreground">
+          {savedAt
+            ? `Saved at ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : "Keep these details in your own Drive and load them on any device."}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={load} disabled={busy !== null}>
+          {busy === "load" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CloudDownload className="mr-1.5 h-4 w-4" />}
+          Load
+        </Button>
+        <Button type="button" size="sm" onClick={save} disabled={busy !== null}>
+          {busy === "save" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-1.5 h-4 w-4" />}
+          Save to Drive
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Paper colour is "Coming soon" alongside the branding uploads (same test
+// switch). A colour picked before it was locked keeps showing, with a way back
+// to the theme's own paper.
+function ComingSoonPaperColor({ value, onReset }: { value: string | null; onReset: () => void }) {
+  if (value) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="h-8 w-8 rounded-full ring-1 ring-black/15" style={{ background: value }} />
+        <Button variant="outline" size="sm" onClick={onReset}>Reset to theme</Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2 rounded-[6px] border border-dashed border-border bg-muted/40 text-sm text-muted-foreground opacity-60">
+      <Palette className="h-4 w-4" />
+      Coming soon
+    </div>
+  );
+}
+
 function ComingSoonUpload({ value, onClear }: { value: string | null; onClear: () => void }) {
   if (value) {
     return (
