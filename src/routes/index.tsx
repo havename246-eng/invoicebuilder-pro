@@ -544,7 +544,7 @@ function Landing() {
               id="about-heading"
               className="reveal-item mt-3 text-[28px] font-bold text-foreground md:text-[36px]"
             >
-              Made in Phnom Penh, for small businesses in Cambodia
+              We build with passion for small businesses in Cambodia
             </h2>
             <p className="reveal-item mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
               Most invoice tools work in one language and one currency. Here, people bill in dollars
