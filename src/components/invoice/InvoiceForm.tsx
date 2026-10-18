@@ -360,7 +360,7 @@ export function InvoiceForm({ data, onChange }: Props) {
       </Section>
 
       {/* From */}
-      <Section title="From" subtitle="Your business details" defaultOpen={false}>
+      <Section title="From" subtitle="Your business details" defaultOpen={hasSenderInfo}>
         {hasSenderInfo && !editingSender ? (
           <SenderSummary
             name={data.senderName}
@@ -665,6 +665,14 @@ function Section({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  // Saved data arrives after mount (local draft, then Drive), so a section that
+  // should start open may only learn that later. Open when defaultOpen turns
+  // true, unless the user has toggled the section themselves. Never auto-close:
+  // clearing every field mid-edit mustn't collapse the card under them.
+  const touched = useRef(false);
+  useEffect(() => {
+    if (defaultOpen && !touched.current) setOpen(true);
+  }, [defaultOpen]);
   // Only animate the height while an actual open/close toggle is in flight — if the
   // transition classes stayed on permanently, any unrelated content resize inside
   // (e.g. a conditional field appearing) would get caught by the same
@@ -677,6 +685,7 @@ function Section({
   }, []);
 
   const toggle = () => {
+    touched.current = true;
     setOpen((o) => !o);
     setIsToggling(true);
     if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current);
