@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useRouteContext } from "@tanstack/react-router";
-import { Check, ChevronDown, CloudUpload, Loader2, Palette, Plus, Trash2, Upload } from "lucide-react";
+import { Check, ChevronDown, CloudUpload, Loader2, Palette, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,7 +137,13 @@ const QUICK_NOTES = [
 ];
 
 export function InvoiceForm({ data, onChange }: Props) {
-  const update = <K extends keyof InvoiceData>(key: K, value: InvoiceData[K]) =>
+  // Saved business details show as a summary until the user chooses to edit.
+  const [editingSender, setEditingSender] = useState(false);
+  const hasSenderInfo = Boolean(
+    data.senderName.trim() || data.senderEmail.trim() || data.senderAddress.trim() || data.logo,
+  );
+
+  const update =<K extends keyof InvoiceData>(key: K, value: InvoiceData[K]) =>
     onChange({ ...data, [key]: value });
 
   const updateItem = (id: string, patch: Partial<LineItem>) =>
@@ -355,20 +361,41 @@ export function InvoiceForm({ data, onChange }: Props) {
 
       {/* From */}
       <Section title="From" subtitle="Your business details" defaultOpen={false}>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Company name">
-            <Input placeholder="Your Company Ltd." value={data.senderName} onChange={(e) => update("senderName", e.target.value)} />
-          </Field>
-          <Field label="Email">
-            <Input type="email" placeholder="billing@yourcompany.com" value={data.senderEmail} onChange={(e) => update("senderEmail", e.target.value)} />
-          </Field>
-          <Field label="Address (optional)" className="sm:col-span-2">
-            <Input placeholder="123 Main St, City" value={data.senderAddress} onChange={(e) => update("senderAddress", e.target.value)} />
-          </Field>
-          <Field label="Logo (optional)" className="sm:col-span-2">
-            <ImageUpload value={data.logo} onClear={() => update("logo", null)} onUpload={(f) => handleImage("logo", f)} label="Upload logo" />
-          </Field>
-        </div>
+        {hasSenderInfo && !editingSender ? (
+          <SenderSummary
+            name={data.senderName}
+            email={data.senderEmail}
+            address={data.senderAddress}
+            logo={data.logo}
+            onEdit={() => setEditingSender(true)}
+          />
+        ) : (
+          // Any interaction keeps the form open, so typing the first letter of
+          // a new company name doesn't flip the section into its summary.
+          <div onFocusCapture={() => setEditingSender(true)}>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Company name">
+                <Input placeholder="Your Company Ltd." value={data.senderName} onChange={(e) => update("senderName", e.target.value)} />
+              </Field>
+              <Field label="Email">
+                <Input type="email" placeholder="billing@yourcompany.com" value={data.senderEmail} onChange={(e) => update("senderEmail", e.target.value)} />
+              </Field>
+              <Field label="Address (optional)" className="sm:col-span-2">
+                <Input placeholder="123 Main St, City" value={data.senderAddress} onChange={(e) => update("senderAddress", e.target.value)} />
+              </Field>
+              <Field label="Logo (optional)" className="sm:col-span-2">
+                <ImageUpload value={data.logo} onClear={() => update("logo", null)} onUpload={(f) => handleImage("logo", f)} label="Upload logo" />
+              </Field>
+            </div>
+            {hasSenderInfo && (
+              <div className="mt-5 flex justify-end">
+                <Button type="button" variant="secondary" size="sm" className="shadow-none" onClick={() => setEditingSender(false)}>
+                  Done
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
         {isDriveConfigured && (
           <DriveProfileSync
             profile={{
@@ -492,12 +519,9 @@ export function InvoiceForm({ data, onChange }: Props) {
                 onChange={(e) => updateItem(item.id, { description: e.target.value })}
                 className="col-span-2 sm:col-span-1"
               />
-              <Input
-                placeholder="Qty"
-                type="number"
-                min="0"
+              <QuantityInput
                 value={item.quantity}
-                onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) })}
+                onChange={(quantity) => updateItem(item.id, { quantity })}
               />
               <PriceInput
                 value={item.price}
@@ -591,6 +615,40 @@ export function InvoiceForm({ data, onChange }: Props) {
           </Field>
         </div>
       </Section>
+    </div>
+  );
+}
+
+/** Saved business details at a glance, listing only the fields that are filled in. */
+function SenderSummary({
+  name,
+  email,
+  address,
+  logo,
+  onEdit,
+}: {
+  name: string;
+  email: string;
+  address: string;
+  logo: string | null;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-start gap-4">
+        {logo && (
+          <img src={logo} alt="" className="h-12 w-12 shrink-0 rounded-lg border border-border object-contain" />
+        )}
+        <div className="min-w-0 space-y-1 text-sm">
+          {name && <p className="font-semibold text-foreground">{name}</p>}
+          {email && <p className="break-words text-muted-foreground">{email}</p>}
+          {address && <p className="break-words text-muted-foreground">{address}</p>}
+        </div>
+      </div>
+      <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1.5 shadow-none" onClick={onEdit}>
+        <Pencil className="h-3.5 w-3.5" />
+        Edit
+      </Button>
     </div>
   );
 }
@@ -1113,6 +1171,50 @@ function PriceInput({
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Quantity field that behaves like PriceInput: plain text rather than a number
+ * spinner, the current value selected on focus so typing replaces it, and an
+ * empty box allowed mid-edit instead of snapping back to 0. Accepts up to two
+ * decimal places for things like 1.5 hours.
+ */
+function QuantityInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  // The text being typed while focused; null when showing the stored value.
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const display = draft ?? (value === 0 ? "" : String(value));
+
+  const handleChange = (raw: string) => {
+    const text = raw.replace(/,/g, "");
+    if (!/^\d*(\.\d{0,2})?$/.test(text)) return;
+    setDraft(text);
+    onChange(text === "" || text === "." ? 0 : Number(text));
+  };
+
+  return (
+    <Input
+      type="text"
+      inputMode="decimal"
+      placeholder="Qty"
+      aria-label="Quantity"
+      value={display}
+      onFocus={(e) => {
+        setDraft(value === 0 ? "" : String(value));
+        // Select after React re-renders the draft text.
+        const el = e.target;
+        requestAnimationFrame(() => el.select());
+      }}
+      onChange={(e) => handleChange(e.target.value)}
+      onBlur={() => setDraft(null)}
+    />
   );
 }
 

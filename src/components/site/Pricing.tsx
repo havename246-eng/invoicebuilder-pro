@@ -102,7 +102,7 @@ export function PricingSection() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="w-full rounded-full border-blue-900/25 text-blue-900 hover:bg-blue-50 hover:text-blue-900"
+                className="w-full rounded-full border-blue-900/25 text-blue-900 shadow-none hover:bg-blue-50 hover:text-blue-900"
               >
                 <Link to="/builder">Start invoicing free</Link>
               </Button>

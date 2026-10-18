@@ -6,7 +6,6 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { trackEvent } from "@/lib/analytics";
-import { isDriveConnected, onDriveConnectionChange } from "@/lib/google-drive";
 import { cn } from "@/lib/utils";
 import logoLight from "@/assets/Logo-light.svg";
 import logoDark from "@/assets/Logo.svg";
@@ -19,22 +18,6 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
   const { user } = useRouteContext({ from: "__root__" });
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  // "My invoices" lives in the user's Google Drive, so it's only offered once
-  // Drive is connected on this device.
-  const [driveConnected, setDriveConnected] = useState(false);
-  useEffect(() => {
-    if (!user) {
-      setDriveConnected(false);
-      return;
-    }
-    let alive = true;
-    isDriveConnected().then((c) => alive && setDriveConnected(c));
-    const off = onDriveConnectionChange(setDriveConnected);
-    return () => {
-      alive = false;
-      off();
-    };
-  }, [user]);
   // On every screen size the full-width bar shrinks into a white pill on
   // scroll. Before scrolling, the dark variant (homepage) rests on navy and the
   // light one (builder) on white.
@@ -143,9 +126,9 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
             >
               Builder
             </Link>
-            {driveConnected && (
+            {user && (
               <Link
-                to="/invoices"
+                to="/dashboard"
                 className={cn("text-sm transition-smooth", linkTone)}
                 activeProps={{ className: activeLinkTone }}
               >
@@ -227,15 +210,6 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
               >
                 Builder
               </Link>
-              {driveConnected && (
-                <Link
-                  to="/invoices"
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
-                >
-                  My invoices
-                </Link>
-              )}
               <a
                 href="#features"
                 onClick={() => setMobileOpen(false)}
@@ -260,7 +234,7 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2.5 text-sm text-foreground transition-smooth hover:bg-muted"
                   >
-                    Dashboard
+                    My invoices
                   </Link>
                   <Link
                     to="/account"

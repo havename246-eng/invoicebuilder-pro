@@ -85,7 +85,7 @@ export function GoogleButton({
     <Button
       type="button"
       variant="outline"
-      className="w-full gap-2 rounded-lg"
+      className="w-full gap-2 rounded-lg shadow-none"
       onClick={signInWithGoogle}
       disabled={loading}
     >

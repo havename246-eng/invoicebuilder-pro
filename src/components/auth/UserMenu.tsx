@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, UserCog } from "lucide-react";
+import { FileText, LogOut, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -76,8 +76,8 @@ export function UserMenu({ user, dark }: { user: AuthUser; dark: boolean }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to="/dashboard" className="cursor-pointer gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
+            <FileText className="h-4 w-4" />
+            My invoices
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

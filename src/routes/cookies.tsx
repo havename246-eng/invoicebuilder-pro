@@ -10,12 +10,12 @@ export const Route = createFileRoute("/cookies")({
       { title: "Cookie Policy | InvoiceCraft" },
       {
         name: "description",
-        content: "InvoiceCraft doesn't use tracking or advertising cookies — here's what we actually store.",
+        content: "The cookies InvoiceCraft uses — Google Analytics and sign-in — and how to opt out.",
       },
       { property: "og:title", content: "Cookie Policy | InvoiceCraft" },
       {
         property: "og:description",
-        content: "InvoiceCraft doesn't use tracking or advertising cookies — here's what we actually store.",
+        content: "The cookies InvoiceCraft uses — Google Analytics and sign-in — and how to opt out.",
       },
       { property: "og:url", content: PAGE_URL },
     ],
@@ -35,10 +35,31 @@ function CookiePolicy() {
 
         <div className="mt-10 space-y-8 text-[15px] leading-relaxed text-foreground">
           <section>
-            <h2 className="text-lg font-semibold">We don't use tracking cookies</h2>
+            <h2 className="text-lg font-semibold">Analytics cookies</h2>
             <p className="mt-2 text-muted-foreground">
-              InvoiceCraft doesn't set advertising, analytics, or third-party tracking cookies. We
-              don't run any analytics platform on this site.
+              We use Google Analytics to see how the site is used. It sets first-party cookies
+              (named <code>_ga</code> and <code>_ga_*</code>) that tell visits apart and last up
+              to two years. They don't contain your name, email or invoice details. We don't use
+              advertising cookies. You can block or delete these cookies in your browser settings,
+              or opt out with Google's{" "}
+              <a
+                href="https://tools.google.com/dlpage/gaoptout"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-900 underline underline-offset-2"
+              >
+                Analytics opt-out add-on
+              </a>
+              .
+            </p>
+          </section>
+          <section>
+            <h2 className="text-lg font-semibold">Sign-in cookies</h2>
+            <p className="mt-2 text-muted-foreground">
+              When you sign in, we set a secure session cookie that keeps you logged in. If you
+              connect Google Drive, a second secure cookie holds an encrypted Google permission so
+              your details can sync. Both are needed for those features to work and are removed
+              when you sign out.
             </p>
           </section>
           <section>
@@ -52,7 +73,7 @@ function CookiePolicy() {
           <section>
             <h2 className="text-lg font-semibold">Changes to this policy</h2>
             <p className="mt-2 text-muted-foreground">
-              If that ever changes (e.g. we add optional analytics), we'll update this page. See our{" "}
+              If we change the cookies we use, we'll update this page. See our{" "}
               <Link to="/privacy" className="text-blue-900 underline underline-offset-2">
                 Privacy Notice
               </Link>{" "}

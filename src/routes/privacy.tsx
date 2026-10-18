@@ -87,28 +87,50 @@ function PrivacyNotice() {
             </p>
           </section>
           <section>
-            <h2 className="text-lg font-semibold">No tracking or analytics</h2>
+            <h2 className="text-lg font-semibold">Analytics</h2>
             <p className="mt-2 text-muted-foreground">
-              We don't run analytics, advertising, or third-party trackers on this site. See our{" "}
+              We use Google Analytics to understand how InvoiceCraft is used, so we can improve it.
+              It collects standard usage information — pages visited, approximate location, device
+              and browser type — and a few in-app actions, such as creating, downloading or sharing
+              an invoice, signing up and logging in. We never send the contents of your invoices,
+              your name, email address or any amounts to Google Analytics. Google processes this
+              data under its own{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-900 underline underline-offset-2"
+              >
+                Privacy Policy
+              </a>
+              , and you can opt out with Google's{" "}
+              <a
+                href="https://tools.google.com/dlpage/gaoptout"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-900 underline underline-offset-2"
+              >
+                browser add-on
+              </a>{" "}
+              or by blocking analytics in your browser. We don't run advertising or sell your data.
+              See our{" "}
               <Link to="/cookies" className="text-blue-900 underline underline-offset-2">
                 Cookie Policy
               </Link>{" "}
-              for details.
+              for the cookies this uses.
             </p>
           </section>
           <section>
             <h2 className="text-lg font-semibold">Contact</h2>
             <p className="mt-2 text-muted-foreground">
-              Questions about this notice? Reach out via the{" "}
+              Questions about this notice? Email us at{" "}
               <a
-                href="https://www.buymeacoffee.com/invoicecraft"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="mailto:invoicecraftkh@gmail.com"
                 className="text-blue-900 underline underline-offset-2"
               >
-                Buy Me a Coffee
-              </a>{" "}
-              page.
+                invoicecraftkh@gmail.com
+              </a>
+              .
             </p>
           </section>
         </div>
