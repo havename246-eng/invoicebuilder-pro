@@ -53,13 +53,17 @@ function PrivacyNotice() {
           <section>
             <h2 className="text-lg font-semibold">Optional: Google Drive</h2>
             <p className="mt-2 text-muted-foreground">
-              If you press "Save to Drive" in the builder, we ask Google for permission to use a
-              private app folder in your own Google Drive (the <code>drive.appdata</code> scope). We
-              save one file there — your business name, email, address and logo — and read it back
-              when you press "Load". We can't see any other files in your Drive, and the file never
-              passes through our servers: your browser talks to Google directly. You can remove
-              InvoiceCraft's access, and the file, at any time from your Google Account under
-              Security → Third-party apps with account access.
+              If you're signed in and choose "Connect Google Drive" in the builder, we ask Google
+              for permission to use a private app folder in your own Google Drive (the{" "}
+              <code>drive.appdata</code> scope). We keep one file there with your business and
+              payment details — business name, email, address, logo, bank name, account number and
+              payment QR — and keep it in sync automatically while you edit, on every device you
+              connect. We can't see any other files in your Drive, and your details never pass
+              through our servers: your browser talks to Google directly. To sync without asking you
+              each visit, an encrypted Google permission is stored in a secure cookie on your own
+              device; it can only reach that app folder. Choosing "Turn off" or signing out removes
+              it from the device, and you can revoke InvoiceCraft's access entirely from your Google
+              Account under Security → Third-party apps with account access.
             </p>
             <p className="mt-2 text-muted-foreground">
               InvoiceCraft's use of information received from Google APIs adheres to the{" "}

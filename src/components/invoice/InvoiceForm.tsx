@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, CloudDownload, CloudUpload, Loader2, Palette, Plus, Trash2, Upload } from "lucide-react";
+import { Link, useRouteContext } from "@tanstack/react-router";
+import { Check, ChevronDown, CloudUpload, Loader2, Palette, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,12 +26,17 @@ import {
 } from "@/lib/invoice";
 import { trackEvent } from "@/lib/analytics";
 import {
+  connectDrive,
+  disconnectDrive,
+  DriveNotConnectedError,
   isDriveConfigured,
   loadProfileFromDrive,
+  preloadGoogle,
   saveProfileToDrive,
   type BusinessProfile,
   type LoadedProfile,
 } from "@/lib/google-drive";
+import { driveStatusFn } from "@/lib/drive-sync";
 
 const DEFAULT_FONT_VALUE = "__default__";
 
@@ -825,9 +831,9 @@ function useBrandingUploads() {
 // (autosaved from an earlier session), keep showing it with a Remove button so the
 // user isn't stuck with an image they can no longer clear.
 /**
- * Save/load the "From" details to the user's own Google Drive (hidden app
- * folder), so they follow the user to another device. Each button asks Google
- * for access the first time, so they run straight from the click.
+ * Keeps the From and Payment details in sync with the signed-in user's own
+ * Google Drive (hidden app folder). Connect once per device; after that the
+ * details load when the builder opens and save shortly after each change.
  */
 function DriveProfileSync({
   profile,
@@ -836,60 +842,171 @@ function DriveProfileSync({
   profile: BusinessProfile;
   onLoad: (profile: LoadedProfile) => void;
 }) {
-  const [busy, setBusy] = useState<"save" | "load" | null>(null);
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const { user } = useRouteContext({ from: "__root__" });
+  type Status = "checking" | "unavailable" | "disconnected" | "connecting" | "syncing" | "synced" | "error";
+  const [status, setStatus] = useState<Status>("checking");
+  const [syncedAt, setSyncedAt] = useState<Date | null>(null);
 
-  async function save() {
-    setBusy("save");
-    try {
-      await saveProfileToDrive(profile);
-      setSavedAt(new Date());
-      toast.success("Saved to your Google Drive");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save to Google Drive.");
-    } finally {
-      setBusy(null);
+  const json = JSON.stringify(profile);
+  // The latest values, for the async load to merge against.
+  const latest = useRef(profile);
+  latest.current = profile;
+  // What Drive holds as far as we know; null until the first load finishes,
+  // which also keeps empty defaults from overwriting Drive before then.
+  const baseline = useRef<string | null>(null);
+
+  const markSynced = (savedJson: string) => {
+    baseline.current = savedJson;
+    setSyncedAt(new Date());
+    setStatus("synced");
+  };
+
+  const handleError = (e: unknown) => {
+    if (e instanceof DriveNotConnectedError) {
+      baseline.current = null;
+      setStatus("disconnected");
+    } else {
+      setStatus("error");
     }
-  }
+  };
 
-  async function load() {
-    setBusy("load");
+  // Pull from Drive; if there's nothing there yet, push what's on screen.
+  async function initialSync() {
+    setStatus("syncing");
     try {
       const saved = await loadProfileFromDrive();
       if (!saved) {
-        toast.info("Nothing saved in this Google Drive yet", {
-          description: "Fill in your details and press Save to Drive.",
-        });
+        const current = latest.current;
+        await saveProfileToDrive(current);
+        markSynced(JSON.stringify(current));
         return;
       }
-      onLoad(saved);
-      toast.success("Loaded your details from Google Drive");
+      const cur = latest.current;
+      const merged: BusinessProfile = {
+        senderName: saved.senderName,
+        senderEmail: saved.senderEmail,
+        senderAddress: saved.senderAddress,
+        logo: saved.logo,
+        // Absent from files saved before payment details were synced.
+        bankName: saved.bankName ?? cur.bankName,
+        bankAccount: saved.bankAccount ?? cur.bankAccount,
+        qrCode: saved.qrCode !== undefined ? saved.qrCode : cur.qrCode,
+      };
+      onLoad(merged);
+      markSynced(JSON.stringify(merged));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't load from Google Drive.");
-    } finally {
-      setBusy(null);
+      handleError(e);
     }
   }
+
+  // On open (and on sign-in): connected on this device? Then load.
+  useEffect(() => {
+    if (!user) return;
+    preloadGoogle();
+    let cancelled = false;
+    driveStatusFn().then(
+      (s) => {
+        if (cancelled) return;
+        if (!s.available) setStatus("unavailable");
+        else if (!s.connected) setStatus("disconnected");
+        else void initialSync();
+      },
+      () => !cancelled && setStatus("error"),
+    );
+    return () => {
+      cancelled = true;
+    };
+    // initialSync reads refs; re-run only when the account changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Save 1.5s after the last change, once the first load has finished.
+  useEffect(() => {
+    if (baseline.current === null || json === baseline.current) return;
+    const timer = setTimeout(async () => {
+      setStatus("syncing");
+      try {
+        await saveProfileToDrive(JSON.parse(json) as BusinessProfile);
+        markSynced(json);
+      } catch (e) {
+        handleError(e);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [json]);
+
+  async function connect() {
+    setStatus("connecting");
+    try {
+      await connectDrive();
+      await initialSync();
+      toast.success("Google Drive connected — your details will sync automatically");
+    } catch (e) {
+      setStatus("disconnected");
+      toast.error(e instanceof Error ? e.message : "Couldn't connect to Google Drive.");
+    }
+  }
+
+  async function disconnect() {
+    await disconnectDrive();
+    baseline.current = null;
+    setSyncedAt(null);
+    setStatus("disconnected");
+    toast.success("Google Drive sync turned off on this device");
+  }
+
+  const time = syncedAt?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const description = !user
+    ? "Sign in to sync your business and payment details to your own Google Drive."
+    : {
+        checking: "Checking your Google Drive connection…",
+        unavailable: "Google Drive sync isn't available right now.",
+        disconnected: "Connect once to keep your business and payment details synced to your own Drive on every device.",
+        connecting: "Waiting for Google…",
+        syncing: "Syncing…",
+        synced: `Synced${time ? ` at ${time}` : ""} · updates automatically as you type.`,
+        error: "Couldn't reach Google Drive. Your changes are still saved on this device.",
+      }[status];
 
   return (
     <div className="mt-5 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-medium text-foreground">Google Drive</p>
-        <p className="text-xs text-muted-foreground">
-          {savedAt
-            ? `Saved at ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-            : "Keep your business and payment details in your own Drive and load them on any device."}
+        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          Google Drive sync
+          {user && status === "synced" && <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />}
+          {user && (status === "syncing" || status === "checking") && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden="true" />
+          )}
+        </p>
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {description}
         </p>
       </div>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={load} disabled={busy !== null}>
-          {busy === "load" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CloudDownload className="mr-1.5 h-4 w-4" />}
-          Load
-        </Button>
-        <Button type="button" size="sm" onClick={save} disabled={busy !== null}>
-          {busy === "save" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-1.5 h-4 w-4" />}
-          Save to Drive
-        </Button>
+      <div className="flex shrink-0 gap-2">
+        {!user ? (
+          <Button asChild type="button" variant="outline" size="sm">
+            <Link to="/login" search={{ redirect: "/builder" }}>
+              Sign in
+            </Link>
+          </Button>
+        ) : status === "disconnected" || status === "connecting" ? (
+          <Button type="button" size="sm" onClick={connect} disabled={status === "connecting"}>
+            {status === "connecting" ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <CloudUpload className="mr-1.5 h-4 w-4" />
+            )}
+            Connect Google Drive
+          </Button>
+        ) : status === "error" ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => void initialSync()}>
+            Retry
+          </Button>
+        ) : status === "synced" || status === "syncing" ? (
+          <Button type="button" variant="ghost" size="sm" onClick={disconnect} className="text-muted-foreground">
+            Turn off
+          </Button>
+        ) : null}
       </div>
     </div>
   );

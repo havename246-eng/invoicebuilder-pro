@@ -1,11 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import {
-  deleteCookie,
-  getCookie,
-  getRequestHeader,
-  getRequestUrl,
-  setCookie,
-} from "@tanstack/react-start/server";
+import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_S,
@@ -17,6 +11,7 @@ import {
   verifySessionCookie,
   type FirebaseUserRecord,
 } from "./firebase/server";
+import { DRIVE_COOKIE, cookieOptions, isSameOrigin, sessionAccount } from "./session.server";
 
 export type AuthUser = {
   id: string;
@@ -46,23 +41,6 @@ function toAuthUser(u: FirebaseUserRecord): AuthUser {
   };
 }
 
-/**
- * True when a state-changing request came from a page on this site. Browsers
- * always send Origin on a cross-site POST and can't be made to forge it, so
- * this stops another website from silently signing a visitor into the
- * attacker's account ("login CSRF") or signing them out.
- */
-function isSameOrigin(): boolean {
-  const origin = getRequestHeader("origin");
-  return !!origin && origin === getRequestUrl().origin;
-}
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: true,
-  sameSite: "lax" as const,
-  path: "/",
-};
 
 /**
  * Resolves the signed-in user from the session cookie. The cookie's signature
@@ -72,20 +50,8 @@ const cookieOptions = {
  */
 export const fetchUser = createServerFn({ method: "GET" }).handler(
   async (): Promise<AuthUser | null> => {
-    const sa = serviceAccount();
-    const cookie = getCookie(SESSION_COOKIE);
-    if (!sa || !cookie) return null;
-
-    try {
-      const claims = await verifySessionCookie(sa, cookie);
-      const record = await lookupUser(sa, claims.sub!);
-      if (!record || record.disabled) return null;
-      // Sessions issued before the account's revocation time are dead.
-      if (record.validSince && (claims.auth_time ?? 0) < Number(record.validSince)) return null;
-      return toAuthUser(record);
-    } catch {
-      return null;
-    }
+    const record = await sessionAccount();
+    return record ? toAuthUser(record) : null;
   },
 );
 
@@ -129,6 +95,9 @@ export const signOutFn = createServerFn({ method: "POST" }).handler(async () => 
   const sa = serviceAccount();
   const cookie = getCookie(SESSION_COOKIE);
   deleteCookie(SESSION_COOKIE, cookieOptions);
+  // Disconnect Google Drive sync on this device too, so the next person on a
+  // shared computer can't sync into this user's Drive.
+  deleteCookie(DRIVE_COOKIE, cookieOptions);
 
   if (sa && cookie) {
     try {

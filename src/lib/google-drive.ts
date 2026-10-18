@@ -1,13 +1,15 @@
 /**
- * Saves and loads the user's business profile (the invoice's "From" details)
- * in their own Google Drive.
+ * Syncs a signed-in user's business profile (the invoice's From and Payment
+ * details) with their own Google Drive.
  *
  * The file lives in Drive's hidden app-data folder, which only this app can
  * see; the scope (drive.appdata) grants no access to anything else in the
- * user's Drive. Access comes from Google Identity Services' token client, asked
- * for only when the user clicks a Drive button, so it works for email/password
- * accounts too and never widens what Google sign-in asks for.
+ * user's Drive. The user connects once per device (connectDrive, from a
+ * click); after that the server hands out short-lived access tokens from an
+ * encrypted grant kept in a cookie on that device (see drive-sync.ts), so
+ * syncing needs no further clicks. Profile data goes browser-to-Google only.
  */
+import { driveConnectFn, driveDisconnectFn, driveTokenFn } from "./drive-sync";
 
 export const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "") as string;
 export const isDriveConfigured = GOOGLE_CLIENT_ID.endsWith(".apps.googleusercontent.com");
@@ -39,20 +41,21 @@ export type LoadedProfile = Omit<BusinessProfile, "bankName" | "bankAccount" | "
   qrCode?: string | null;
 };
 
-type TokenResponse = { access_token?: string; expires_in?: number; error?: string };
-type TokenClient = { requestAccessToken: (o?: { prompt?: string }) => void };
+type CodeResponse = { code?: string; error?: string };
+type CodeClient = { requestCode: () => void };
 
 declare global {
   interface Window {
     google?: {
       accounts: {
         oauth2: {
-          initTokenClient: (config: {
+          initCodeClient: (config: {
             client_id: string;
             scope: string;
-            callback: (r: TokenResponse) => void;
+            ux_mode: "popup";
+            callback: (r: CodeResponse) => void;
             error_callback?: (e: { type: string }) => void;
-          }) => TokenClient;
+          }) => CodeClient;
         };
       };
     };
@@ -79,28 +82,26 @@ function loadGis(): Promise<void> {
   return gisLoader;
 }
 
-// Access tokens last an hour; reuse one until shortly before it expires.
-let cached: { token: string; expiresAt: number } | null = null;
+/** Start loading Google's script early so the Connect click opens instantly. */
+export function preloadGoogle() {
+  if (isDriveConfigured) loadGis().catch(() => undefined);
+}
 
 /**
- * An access token for the app-data folder. The first call in a session opens
- * Google's consent popup, so call it straight from a click handler.
+ * Connects this device's Drive: Google's consent popup, then the server keeps
+ * an encrypted grant so later syncs need no clicks. Call from a click handler.
  */
-async function getToken(): Promise<string> {
-  if (cached && cached.expiresAt - 60_000 > Date.now()) return cached.token;
+export async function connectDrive(): Promise<void> {
   await loadGis();
-  return new Promise<string>((resolve, reject) => {
-    const client = window.google!.accounts.oauth2.initTokenClient({
+  const code = await new Promise<string>((resolve, reject) => {
+    const client = window.google!.accounts.oauth2.initCodeClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: SCOPE,
-      callback: (r) => {
-        if (!r.access_token) {
-          reject(new Error(r.error === "access_denied" ? "Google Drive access wasn't allowed." : "Couldn't connect to Google Drive."));
-          return;
-        }
-        cached = { token: r.access_token, expiresAt: Date.now() + (r.expires_in ?? 3600) * 1000 };
-        resolve(r.access_token);
-      },
+      ux_mode: "popup",
+      callback: (r) =>
+        r.code
+          ? resolve(r.code)
+          : reject(new Error(r.error === "access_denied" ? "Google Drive access wasn't allowed." : "Couldn't connect to Google Drive.")),
       error_callback: (e) =>
         reject(
           new Error(
@@ -112,8 +113,35 @@ async function getToken(): Promise<string> {
           ),
         ),
     });
-    client.requestAccessToken({ prompt: "" });
+    client.requestCode();
   });
+  const result = await driveConnectFn({ data: code });
+  if (!result.ok) throw new Error(result.error ?? "Couldn't connect to Google Drive.");
+  cached = null;
+}
+
+/** Stops syncing on this device (other connected devices keep syncing). */
+export async function disconnectDrive(): Promise<void> {
+  cached = null;
+  await driveDisconnectFn();
+}
+
+/** Thrown when this device isn't connected (or the grant was revoked). */
+export class DriveNotConnectedError extends Error {
+  constructor() {
+    super("Google Drive isn't connected on this device.");
+  }
+}
+
+// Access tokens last an hour; reuse one until shortly before it expires.
+let cached: { token: string; expiresAt: number } | null = null;
+
+async function getToken(): Promise<string> {
+  if (cached && cached.expiresAt - 60_000 > Date.now()) return cached.token;
+  const r = await driveTokenFn();
+  if (!r.accessToken) throw new DriveNotConnectedError();
+  cached = { token: r.accessToken, expiresAt: Date.now() + (r.expiresIn ?? 3600) * 1000 };
+  return r.accessToken;
 }
 
 async function drive(url: string, init: RequestInit = {}) {
