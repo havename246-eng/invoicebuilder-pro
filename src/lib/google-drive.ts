@@ -17,11 +17,26 @@ const FILE_NAME = "invoicecraft-business-profile.json";
 const API = "https://www.googleapis.com/drive/v3/files";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
 
+/** What "Save to Drive" writes: the From section plus the Payment section. */
 export type BusinessProfile = {
   senderName: string;
   senderEmail: string;
   senderAddress: string;
   logo: string | null;
+  bankName: string;
+  bankAccount: string;
+  qrCode: string | null;
+};
+
+/**
+ * What "Load" returns. Payment fields are undefined when the file predates
+ * them (saved before payment details were synced), so loading an old file
+ * leaves the user's current payment details alone instead of wiping them.
+ */
+export type LoadedProfile = Omit<BusinessProfile, "bankName" | "bankAccount" | "qrCode"> & {
+  bankName?: string;
+  bankAccount?: string;
+  qrCode?: string | null;
 };
 
 type TokenResponse = { access_token?: string; expires_in?: number; error?: string };
@@ -157,18 +172,21 @@ export async function saveProfileToDrive(profile: BusinessProfile): Promise<void
 }
 
 /** The saved profile, or null if this Google account hasn't saved one yet. */
-export async function loadProfileFromDrive(): Promise<BusinessProfile | null> {
+export async function loadProfileFromDrive(): Promise<LoadedProfile | null> {
   const id = await findFileId();
   if (!id) return null;
   const res = await drive(`${API}/${id}?alt=media`);
-  const data = (await res.json()) as Partial<BusinessProfile>;
-  const str = (v: unknown) => (typeof v === "string" ? v : "");
-  // Only an image data URL is accepted back as a logo.
-  const logo = typeof data.logo === "string" && /^data:image\//.test(data.logo) ? data.logo : null;
+  const data = (await res.json()) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+  // Only an image data URL is accepted back as a logo or QR code.
+  const img = (v: unknown) => (typeof v === "string" && /^data:image\//.test(v) ? v : null);
   return {
-    senderName: str(data.senderName),
-    senderEmail: str(data.senderEmail),
-    senderAddress: str(data.senderAddress),
-    logo,
+    senderName: str(data.senderName) ?? "",
+    senderEmail: str(data.senderEmail) ?? "",
+    senderAddress: str(data.senderAddress) ?? "",
+    logo: img(data.logo),
+    bankName: str(data.bankName),
+    bankAccount: str(data.bankAccount),
+    qrCode: "qrCode" in data ? img(data.qrCode) : undefined,
   };
 }

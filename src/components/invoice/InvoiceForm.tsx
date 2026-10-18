@@ -29,6 +29,7 @@ import {
   loadProfileFromDrive,
   saveProfileToDrive,
   type BusinessProfile,
+  type LoadedProfile,
 } from "@/lib/google-drive";
 
 const DEFAULT_FONT_VALUE = "__default__";
@@ -369,8 +370,23 @@ export function InvoiceForm({ data, onChange }: Props) {
               senderEmail: data.senderEmail,
               senderAddress: data.senderAddress,
               logo: data.logo,
+              bankName: data.bankName,
+              bankAccount: data.bankAccount,
+              qrCode: data.qrCode,
             }}
-            onLoad={(profile) => onChange({ ...data, ...profile })}
+            onLoad={(p) =>
+              onChange({
+                ...data,
+                senderName: p.senderName,
+                senderEmail: p.senderEmail,
+                senderAddress: p.senderAddress,
+                logo: p.logo,
+                // Absent from files saved before payment details were synced.
+                bankName: p.bankName ?? data.bankName,
+                bankAccount: p.bankAccount ?? data.bankAccount,
+                qrCode: p.qrCode !== undefined ? p.qrCode : data.qrCode,
+              })
+            }
           />
         )}
       </Section>
@@ -818,7 +834,7 @@ function DriveProfileSync({
   onLoad,
 }: {
   profile: BusinessProfile;
-  onLoad: (profile: BusinessProfile) => void;
+  onLoad: (profile: LoadedProfile) => void;
 }) {
   const [busy, setBusy] = useState<"save" | "load" | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -862,7 +878,7 @@ function DriveProfileSync({
         <p className="text-xs text-muted-foreground">
           {savedAt
             ? `Saved at ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-            : "Keep these details in your own Drive and load them on any device."}
+            : "Keep your business and payment details in your own Drive and load them on any device."}
         </p>
       </div>
       <div className="flex gap-2">
