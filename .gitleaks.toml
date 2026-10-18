@@ -1,0 +1,16 @@
+# Gitleaks config for the Secret scan workflow: the default rules, plus the
+# files that contain secret-looking values on purpose.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Intentionally public or placeholder values"
+paths = [
+  # Firebase web config and the Google OAuth client ID: public by design,
+  # shipped to every visitor's browser.
+  '''^\.env\.production$''',
+  # Placeholder values only.
+  '''^\.env\.example$''',
+  # The local scanner's own detection patterns.
+  '''^scripts/check-secrets\.mjs$''',
+]

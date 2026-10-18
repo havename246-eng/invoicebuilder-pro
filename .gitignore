@@ -47,3 +47,6 @@ service-account*.json
 *.pem
 *.key
 *.p12
+
+# Google OAuth client secret downloads
+client_secret*.json
