@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Download, FileImage, FileText, Loader2 } from "lucide-react";
+import { Check, CloudUpload, Download, FileImage, FilePlus2, FileText, Loader2 } from "lucide-react";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,21 @@ import { SiteHeader } from "@/components/site/Header";
 import { InvoiceForm } from "@/components/invoice/InvoiceForm";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { TelegramLogo } from "@/components/invoice/TelegramLogo";
-import { defaultInvoice, type InvoiceData } from "@/lib/invoice";
+import {
+  DRAFT_STORAGE_KEY,
+  defaultInvoice,
+  nextInvoiceNumber,
+  type InvoiceData,
+} from "@/lib/invoice";
+import {
+  connectDrive,
+  DriveNotConnectedError,
+  DriveScopeMissingError,
+  isDriveConnected,
+  onDriveConnectionChange,
+  pdfViewUrl,
+  saveInvoiceToDrive,
+} from "@/lib/google-drive";
 import {
   buildInvoiceFile,
   canSaveToPhotos,
@@ -45,8 +59,6 @@ export const Route = createFileRoute("/builder")({
   component: Builder,
 });
 
-const STORAGE_KEY = "invoicecraft:data:v2";
-
 function Builder() {
   const [data, setData] = useState<InvoiceData>(defaultInvoice);
   const [exporting, setExporting] = useState<null | "png" | "pdf">(null);
@@ -67,6 +79,20 @@ function Builder() {
   const progressFillRef = useRef<HTMLSpanElement>(null);
   const checkRef = useRef<SVGSVGElement>(null);
   const createdReportedRef = useRef(false);
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [savingToDrive, setSavingToDrive] = useState(false);
+
+  // Drive connected on this device? Then exports also save to it, and the
+  // pill gets a manual "Save to Drive" button.
+  useEffect(() => {
+    let alive = true;
+    isDriveConnected().then((c) => alive && setDriveConnected(c));
+    const off = onDriveConnectionChange(setDriveConnected);
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
 
   // Invoices aren't persisted anywhere yet (see the dashboard), so there's no
   // save to hang "created" off. The first edit the visitor makes to the blank
@@ -131,14 +157,14 @@ function Builder() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (saved) setData({ ...defaultInvoice(), ...JSON.parse(saved) });
     } catch {}
   }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
     } catch {}
   }, [data]);
 
@@ -156,6 +182,73 @@ function Builder() {
     [data],
   );
 
+  /**
+   * Saves this invoice to the user's Google Drive (PDF in My Drive, data for
+   * My invoices). Runs after every export when Drive is connected, and from
+   * the pill's Drive button. `pdf` reuses an export's PDF instead of
+   * rendering again. A missing or outdated Drive grant never fails the export:
+   * the toast offers Reconnect, which is a click, so Google's popup may open.
+   */
+  const saveToDrive = async (pdf?: Blob) => {
+    setSavingToDrive(true);
+    const tId = toast.loading("Saving to Google Drive…");
+    try {
+      const file = pdf ?? (await generateInvoiceFile("pdf"));
+      const { pdfFileId } = await saveInvoiceToDrive(data, file);
+      toast.success("Saved to Drive", {
+        id: tId,
+        action: { label: "View", onClick: () => window.open(pdfViewUrl(pdfFileId), "_blank", "noopener") },
+      });
+    } catch (e) {
+      const needsConnect = e instanceof DriveNotConnectedError || e instanceof DriveScopeMissingError;
+      toast.error(needsConnect ? "Not saved to Drive" : "Couldn't save to Drive", {
+        id: tId,
+        description: needsConnect
+          ? e instanceof DriveScopeMissingError
+            ? "Allow InvoiceCraft to save invoice files in your Drive."
+            : "Google Drive is disconnected on this device."
+          : e instanceof Error
+            ? e.message
+            : undefined,
+        action: needsConnect
+          ? {
+              label: "Reconnect",
+              onClick: () =>
+                void connectDrive().then(
+                  () => saveToDrive(pdf),
+                  (err) => toast.error(err instanceof Error ? err.message : "Couldn't connect to Google Drive."),
+                ),
+            }
+          : { label: "Retry", onClick: () => void saveToDrive(pdf) },
+      });
+    } finally {
+      setSavingToDrive(false);
+    }
+  };
+
+  /**
+   * Starts the next invoice: new id (so it's saved to Drive as a separate
+   * invoice), next number, today's date, no client or items. Keeps the From
+   * and Payment details and the look.
+   */
+  const startNewInvoice = () => {
+    const fresh = defaultInvoice();
+    setData({
+      ...data,
+      invoiceId: fresh.invoiceId,
+      invoiceNumber: nextInvoiceNumber(data.invoiceNumber),
+      issueDate: fresh.issueDate,
+      dueDate: "",
+      status: "draft",
+      clientName: "",
+      clientEmail: "",
+      clientAddress: "",
+      items: fresh.items,
+      notes: fresh.notes,
+    });
+    toast.success("New invoice started", { description: "Your business and payment details are kept." });
+  };
+
   const handleExport = async (kind: "png" | "pdf") => {
     if (!document.getElementById("invoice-preview")) {
       toast.error("Preview not ready", { description: "Please wait a moment and try again." });
@@ -170,6 +263,7 @@ function Builder() {
       try {
         if (await saveToPhotos(ready)) {
           trackEvent("invoice_downloaded", { format: kind, method: "photos" });
+          if (driveConnected) void saveToDrive();
         }
         return;
       } catch (e) {
@@ -208,6 +302,8 @@ function Builder() {
         trackEvent("invoice_downloaded", { format: kind });
       }
       setExportDone(true);
+      // Exporting is when an invoice counts as created: keep a copy in Drive.
+      if (driveConnected) void saveToDrive(kind === "pdf" ? file : undefined);
       await new Promise((r) => setTimeout(r, 1300));
     } catch (e) {
       console.error("[export]", e);
@@ -310,9 +406,15 @@ function Builder() {
 
       <div className="container mx-auto max-w-[1500px] px-4 py-6 pb-48 sm:px-6 sm:py-8 sm:pb-56">
         {/* Toolbar */}
-        <div className="mb-6">
-          <h1 className="text-[22px] sm:text-[28px]">Invoice Builder</h1>
-          <p className="text-sm text-muted-foreground sm:text-[15px]">Live preview · Auto-saved · Bilingual KH/EN</p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[22px] sm:text-[28px]">Invoice Builder</h1>
+            <p className="text-sm text-muted-foreground sm:text-[15px]">Live preview · Auto-saved · Bilingual KH/EN</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-full" onClick={startNewInvoice}>
+            <FilePlus2 className="h-4 w-4" />
+            New invoice
+          </Button>
         </div>
 
         {/* Split */}
@@ -382,6 +484,22 @@ function Builder() {
               </span>
             )}
           </button>
+          {driveConnected && (
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-smooth hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:h-12 sm:w-12"
+              disabled={!!exporting || savingToDrive}
+              onClick={() => void saveToDrive()}
+              aria-label="Save invoice to Google Drive"
+              title="Save invoice to Google Drive"
+            >
+              {savingToDrive ? (
+                <Loader2 className="h-4 w-4 animate-spin sm:h-5 sm:w-5" aria-hidden="true" />
+              ) : (
+                <CloudUpload className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+              )}
+            </button>
+          )}
           <Button
             size="lg"
             className="relative h-auto w-[92px] justify-center overflow-hidden rounded-full bg-accent-lime px-4 py-2 text-sm text-blue-950 hover:bg-accent-lime/90 sm:w-[148px] sm:px-7 sm:py-3 sm:text-base"

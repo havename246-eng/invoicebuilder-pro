@@ -51,6 +51,8 @@ export interface LineItem {
 }
 
 export interface InvoiceData {
+  /** Stable id for this invoice, so re-saving it to Drive updates rather than duplicates. */
+  invoiceId: string;
   // Sender
   senderName: string;
   senderEmail: string;
@@ -118,6 +120,7 @@ export const calcTotals = (items: LineItem[], taxRate: number) => {
 };
 
 export const defaultInvoice = (): InvoiceData => ({
+  invoiceId: crypto.randomUUID(),
   senderName: "",
   senderEmail: "",
   senderAddress: "",
@@ -379,3 +382,25 @@ export const STATUS_STYLES: Record<InvoiceStatus, { bg: string; text: string; ri
   paid: { bg: "#d1fae5", text: "#065f46", ring: "#6ee7b7" },
   void: { bg: "#fee2e2", text: "#991b1b", ring: "#fca5a5" },
 };
+
+/** localStorage key for the builder's working draft. */
+export const DRAFT_STORAGE_KEY = "invoicecraft:data:v2";
+
+/**
+ * The invoice number after `current`, keeping its prefix and zero padding:
+ * INV-0009 -> INV-0010, 2026/41 -> 2026/42. With `existing`, continues from
+ * the highest number among them that shares the prefix, so a duplicate never
+ * reuses a number. Falls back to appending "-2" when there's no trailing digit.
+ */
+export function nextInvoiceNumber(current: string, existing: string[] = []): string {
+  const parse = (n: string) => /^(.*?)(\d+)$/.exec(n.trim());
+  const base = parse(current);
+  if (!base) return current ? `${current}-2` : "INV-0001";
+  const [, prefix, digits] = base;
+  let max = Number(digits);
+  for (const n of existing) {
+    const m = parse(n);
+    if (m && m[1] === prefix) max = Math.max(max, Number(m[2]));
+  }
+  return prefix + String(max + 1).padStart(digits.length, "0");
+}

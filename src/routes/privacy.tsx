@@ -66,6 +66,14 @@ function PrivacyNotice() {
               Account under Security → Third-party apps with account access.
             </p>
             <p className="mt-2 text-muted-foreground">
+              With Drive connected, each invoice you export is also saved to your Drive: a PDF in a
+              visible <strong>InvoiceCraft / Invoices</strong> folder that you own and can open,
+              share or delete, and a copy of the invoice data in the private app folder so the{" "}
+              <strong>My invoices</strong> page can list and reopen it. For this we use the{" "}
+              <code>drive.file</code> scope, which only reaches files InvoiceCraft itself created
+              — never your other documents. Deleting an invoice in My invoices removes both files.
+            </p>
+            <p className="mt-2 text-muted-foreground">
               InvoiceCraft's use of information received from Google APIs adheres to the{" "}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"

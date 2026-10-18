@@ -31,7 +31,7 @@ function DashboardPage() {
             Welcome, {greetingName}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Your account is active. Saved invoices will appear here.
+            Your account is active.
           </p>
         </div>
 
@@ -39,18 +39,22 @@ function DashboardPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <Inbox className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-foreground">No saved invoices yet</h2>
+          <h2 className="mt-4 text-lg font-semibold text-foreground">Your invoices live in Google Drive</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Saving invoices to your account needs a database table and its access policies — that
-            isn't built yet. For now the builder works exactly as before, and exports download
-            straight to your device.
+            Connect Google Drive in the builder (From section) and every invoice you export is
+            saved to your Drive under InvoiceCraft / Invoices, and listed in My invoices.
           </p>
-          <Button asChild className="mt-6 gap-2 rounded-lg">
-            <Link to="/builder">
-              <FilePlus2 className="h-4 w-4" />
-              Create an invoice
-            </Link>
-          </Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button asChild className="gap-2 rounded-lg">
+              <Link to="/builder">
+                <FilePlus2 className="h-4 w-4" />
+                Create an invoice
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-lg">
+              <Link to="/invoices">My invoices</Link>
+            </Button>
+          </div>
         </div>
       </main>
     </div>

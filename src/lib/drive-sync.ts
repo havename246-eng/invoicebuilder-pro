@@ -146,7 +146,13 @@ export const driveConnectFn = createServerFn({ method: "POST" })
  * POST so it's never cached. Clears the grant if Google has revoked it.
  */
 export const driveTokenFn = createServerFn({ method: "POST" }).handler(
-  async (): Promise<{ accessToken?: string; expiresIn?: number; connected: boolean }> => {
+  async (): Promise<{
+    accessToken?: string;
+    expiresIn?: number;
+    /** Space-separated scopes this token carries. */
+    scope?: string;
+    connected: boolean;
+  }> => {
     if (!isSameOrigin()) return { connected: false };
     const client = oauthClient();
     const account = client ? await sessionAccount() : null;
@@ -165,7 +171,12 @@ export const driveTokenFn = createServerFn({ method: "POST" }).handler(
       if (body.error === "invalid_grant") deleteCookie(DRIVE_COOKIE, cookieOptions);
       return { connected: false };
     }
-    return { accessToken: body.access_token, expiresIn: body.expires_in, connected: true };
+    return {
+      accessToken: body.access_token,
+      expiresIn: body.expires_in,
+      scope: body.scope,
+      connected: true,
+    };
   },
 );
 
